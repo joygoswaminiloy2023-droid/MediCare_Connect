@@ -1,26 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --primary-brand: #00A3E0;
+  --primary-hover: #0082b3;
+  --bg-matte: #f4f9fc;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-matte);
+  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Ensure equal card dimensions across your features rows */
+.equal-grid-card {
+  @apply bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between transition-all duration-300;
 }
