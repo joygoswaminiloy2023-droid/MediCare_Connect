@@ -6,8 +6,8 @@ import { Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import logo from "../../assets/logo.png"; 
 import { authClient } from "@/lib/auth-client";
+import { FaHeartbeat } from "react-icons/fa";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -54,7 +54,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 p-4 md:p-6 font-sans">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-200 p-4 md:p-6 font-sans">
       <ToastContainer position="top-right" autoClose={3000} />
 
       <div className="relative w-full max-w-[1000px] min-h-[680px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
@@ -67,8 +67,8 @@ export default function AuthPage() {
         >
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <Image src={logo} alt="Logo" width={32} height={32} />
-              <span className="font-bold text-xl text-slate-800">MediScanAI</span>
+            <FaHeartbeat className="w-6 h-6 animate-pulse text-[#00A3E0]" />
+              <span className="font-bold text-xl text-[#00A3E0]">Medicare-Connect</span>
             </div>
             <h2 className="text-3xl font-bold text-slate-900">
               {isLogin ? "Welcome back" : "Create account"}
@@ -84,7 +84,7 @@ export default function AuthPage() {
                     type="text" 
                     placeholder="Enter Your Name"
                     {...register("name", { required: !isLogin })} 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#19bf82] transition-all" 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0] transition-all" 
                   />
                 </div>
                 <div className="space-y-1">
@@ -93,7 +93,7 @@ export default function AuthPage() {
                     type="url" 
                     placeholder="https://example.com/photo.jpg"
                     {...register("image")} 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#19bf82] transition-all" 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0] transition-all" 
                   />
                 </div>
               </>
@@ -104,7 +104,7 @@ export default function AuthPage() {
               <input 
                 type="email" 
                 {...register("email", { required: true })} 
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#19bf82]" 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0]" 
               />
             </div>
 
@@ -114,7 +114,7 @@ export default function AuthPage() {
                 <input 
                   type={showPassword ? "text" : "password"} 
                   {...register("password", { required: true })}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#19bf82]" 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0]" 
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -122,7 +122,7 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <button type="submit" disabled={isSubmitting} className="w-full bg-[#19bf82] hover:bg-[#16a36f] text-white font-bold py-3.5 rounded-xl shadow-lg transition-all mt-4">
+            <button type="submit" disabled={isSubmitting} className="w-full bg-[#00A3E0] hover:bg-[#0a8ebe] text-white font-bold py-3.5 rounded-xl shadow-lg transition-all mt-4">
               {isSubmitting ? "..." : (isLogin ? "Sign In" : "Create Account")}
             </button>
           </form>
@@ -144,7 +144,7 @@ export default function AuthPage() {
 
           <p className="mt-6 text-center text-slate-500 text-sm">
             {isLogin ? "Don't have an account?" : "Already have an account?"}
-            <button onClick={toggleAuthMode} className="ml-2 text-[#19bf82] font-bold underline">
+            <button onClick={toggleAuthMode} className="ml-2 text-[#00A3E0] font-bold underline">
               {isLogin ? "Sign up" : "Log in"}
             </button>
           </p>
@@ -152,7 +152,7 @@ export default function AuthPage() {
 
         {/* --- DECORATIVE PANEL --- */}
         <div 
-          className={`hidden md:flex absolute top-0 left-0 w-1/2 h-full bg-[#19bf82] transition-transform duration-700 ease-in-out z-20 flex-col items-center justify-center text-white px-12 text-center ${
+          className={`hidden md:flex absolute top-0 left-0 w-1/2 h-full bg-[#00A3E0] transition-transform duration-700 ease-in-out z-20 flex-col items-center justify-center text-white px-12 text-center ${
             isLogin ? "translate-x-full" : "translate-x-0"
           }`}
         >
