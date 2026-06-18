@@ -1,20 +1,23 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FaHeartbeat, FaBars, FaTimes, FaRegCalendarCheck, FaUserCircle, FaChevronDown } from 'react-icons/fa';
 import { FiLogIn, FiLogOut, FiLayout, FiSettings } from 'react-icons/fi';
 
+// Import your authClient instance
+import { authClient } from "@/lib/auth-client";
+import Image from 'next/image';
+
 export default function Navbar() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Simulating state checks (Swap to active context if user session evaluates to true)
-  const [user, setUser] = useState({
-    name: "Alex Mercer",
-    email: "alex@mediscanai.com",
-    image: null // Fallback to icon if string is null
-  });
+  // Read active authentication state directly from your auth client hook
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user || null;
 
   // Close user dropdown when clicking outside
   useEffect(() => {
@@ -27,10 +30,16 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    // Inject authClient.signOut processing logic here
-    setUser(null);
-    setDropdownOpen(false);
+  const handleLogout = async () => {
+    try {
+      await authClient.signOut({
+        callbackURL: "/Authentication_pages" // Redirects to your login page upon successful logout
+      });
+      setDropdownOpen(false);
+      setIsOpen(false);
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    }
   };
 
   return (
@@ -64,15 +73,17 @@ export default function Navbar() {
               APPOINTMENT
             </Link>
 
-            {/* IF USER LOGGED IN SHOW DROPDOWN ELSE SHOW AUTH TRIGGER */}
-            {user ? (
+            {/* Loading Skeleton state fallback to keep UI smooth while parsing token cookies */}
+            {isPending ? (
+              <div className="w-32 h-9 bg-slate-100 rounded-xl animate-pulse border border-slate-200" />
+            ) : user ? (
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 p-1.5 pr-3 rounded-xl hover:bg-slate-100 transition-all text-slate-700 outline-none"
                 >
                   {user.image ? (
-                    <img src={user.image} alt={user.name} className="w-7 h-7 rounded-lg object-cover" />
+                    <Image src={user.image} alt={user.name} width={40} height={40} className="w-7 h-7 rounded-lg object-cover" />
                   ) : (
                     <FaUserCircle className="text-2xl text-slate-400" />
                   )}
@@ -134,7 +145,7 @@ export default function Navbar() {
       {isOpen && (
         <div className="lg:hidden bg-slate-950 text-white w-full border-t border-slate-800 animate-fadeIn">
           {/* Mobile User Header Context Card */}
-          {user && (
+          {!isPending && user && (
             <div className="flex items-center gap-3 px-6 py-4 bg-slate-900/60 border-b border-slate-800">
               {user.image ? (
                 <img src={user.image} alt={user.name} className="w-9 h-9 rounded-xl object-cover" />
@@ -168,13 +179,13 @@ export default function Navbar() {
                 APPOINTMENT
               </Link>
               
-              {user ? (
+              {!isPending && user ? (
                 <button onClick={handleLogout} className="bg-rose-600 text-white hover:bg-rose-700 py-3 rounded-xl font-bold text-xs tracking-wide shadow-md transition-all duration-200 flex items-center justify-center gap-2">
                   <FiLogOut />
                   LOGOUT
                 </button>
               ) : (
-                <Link href="/auth" onClick={() => setIsOpen(false)} className="bg-white text-slate-900 hover:bg-slate-100 py-3 rounded-xl font-bold text-xs tracking-wide shadow-md transition-all duration-200 flex items-center justify-center gap-2">
+                <Link href="/Authentication_pages" onClick={() => setIsOpen(false)} className="bg-white text-slate-900 hover:bg-slate-100 py-3 rounded-xl font-bold text-xs tracking-wide shadow-md transition-all duration-200 flex items-center justify-center gap-2">
                   <FiLogIn />
                   LOGIN
                 </Link>

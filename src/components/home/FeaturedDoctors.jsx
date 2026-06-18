@@ -40,7 +40,7 @@ export default function FeaturedDoctors() {
             fee: 120, 
             rating: 4.9, 
             reviews: 312,
-            image: 'https://pbs.twimg.com/media/E5M4wHSUcAAab62.jpg' 
+            image: 'https://img.magnific.com/free-photo/beautiful-young-female-doctor-looking-camera-office_1301-7807.jpg?semt=ais_hybrid&w=740&q=80' 
           },
         ];
         setDoctors(mockData);
