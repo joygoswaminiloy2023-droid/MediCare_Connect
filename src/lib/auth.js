@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { role } from "better-auth/client";
 
 const client = new MongoClient(process.env.DATABASE_URL);
 const db = client.db("Medicare_connect");
@@ -19,6 +20,14 @@ export const auth = betterAuth({
             clientSecret: process.env.GOOGLE_CLIENT_SECRET
     },
 
+},
+user:{
+  additionalFields:{
+    role:{
+      default: "Patient"
+
+    }
+  }
 }
 
 });

@@ -1,16 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
-  reactCompiler: true,
-   images: {
+  images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**",
+        protocol: 'https',
+        hostname: '**', // Allows any domain name secure connection (e.g., unsplash, imgur, pinimg, etc.)
+        port: '',
+        pathname: '/**', // Allows any sub-directory folder path structure
       },
       {
-        protocol: "http",
-        hostname: "**",
+        protocol: 'http',
+        hostname: '**', // Also allows unsecured legacy URLs if any exist in your database records
+        port: '',
+        pathname: '/**',
       },
     ],
   },

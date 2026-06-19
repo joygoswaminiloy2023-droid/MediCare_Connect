@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation"; // Imported Next.js Client Router
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, ArrowRight, CheckCircle2, User, Stethoscope } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
@@ -10,6 +11,7 @@ import { authClient } from "@/lib/auth-client";
 import { FaHeartbeat } from "react-icons/fa";
 
 export default function AuthPage() {
+  const router = useRouter(); // Activated Router Hook
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -46,6 +48,15 @@ export default function AuthPage() {
 
   const onSubmit = async (data) => {
     try {
+      // 1. Force explicit validation match rules required by assignment guidelines
+      if (!isLogin) {
+        const strongPasswordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{6,}$/;
+        if (!strongPasswordRegex.test(data.password)) {
+          toast.error("Password must be at least 6 characters, including 1 number & 1 special character.");
+          return;
+        }
+      }
+
       const response = isLogin
         ? await authClient.signIn.email({ 
             email: data.email, 
@@ -61,17 +72,30 @@ export default function AuthPage() {
             callbackURL: "/" 
           });
 
-      if (response?.error) {
-        toast.error(response.error.message || "Authentication failed");
+      if (response?.error || response?.data === null) {
+        toast.error(response?.error?.message || "Authentication processing failed.");
+      } else {
+        // 2. Trigger Success Toast
+        toast.success(isLogin ? "Welcome back! Login Successful." : "Account Created Successfully!");
+        
+        // 3. Clear data form inputs safely
+        reset();
+
+        // 4. Wait for the toast animation to display before redirecting
+        setTimeout(() => {
+          router.push("/");
+          router.refresh(); // Forces Next.js to re-evaluate active cookie tokens instantly
+        }, 1500);
       }
     } catch (err) {
-      toast.error("Something went wrong.");
+      console.error(err);
+      toast.error("Something went wrong during data transmission.");
     }
   };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-200 p-4 md:p-6 font-sans">
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer position="top-right" autoClose={2000} />
 
       <div className="relative w-full max-w-[1000px] min-h-[720px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
         
@@ -165,7 +189,7 @@ export default function AuthPage() {
               </>
             )}
             
-            <div className="space-y-1 md:mt-20 mt-0">
+            <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Email Address</label>
               <input 
                 type="email" 
@@ -188,8 +212,10 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <button type="submit" disabled={isSubmitting} className="w-full bg-[#00A3E0] hover:bg-[#0a8ebe] text-white font-bold py-3.5 rounded-xl shadow-lg transition-all mt-4">
-              {isSubmitting ? "..." : (isLogin ? "Sign In" : "Create Account")}
+            <button type="submit" disabled={isSubmitting} className="w-full bg-[#00A3E0] hover:bg-[#0a8ebe] text-white font-bold py-3.5 rounded-xl shadow-lg transition-all mt-4 flex items-center justify-center">
+              {isSubmitting ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (isLogin ? "Sign In" : "Create Account")}
             </button>
           </form>
 
@@ -227,7 +253,7 @@ export default function AuthPage() {
             backgroundPosition: 'center',
           }}
         >
-          {/* Overlay to keep the text perfectly clear over the photographic background */}
+          {/* Overlay */}
           <div className="absolute inset-0 bg-[#00A3E0]/80 mix-blend-multiply z-0"></div>
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[1px] z-0"></div>
 
@@ -236,7 +262,7 @@ export default function AuthPage() {
           
           <div className="relative z-10 space-y-8">
             <h2 className="text-4xl font-extrabold leading-tight">
-              {isLogin ? "Join our health community" : "Welcome back, Researcher"}
+              {isLogin ? "Join our health community" : "Welcome back"}
             </h2>
             <div className="space-y-4 text-white/90">
               <p className="flex items-center gap-3 justify-center">

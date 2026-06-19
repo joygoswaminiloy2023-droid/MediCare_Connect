@@ -19,6 +19,20 @@ export default function Navbar() {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user || null;
 
+  // Helper method to dynamically direct users to their specific authorized control layout
+  const getDashboardRoute = () => {
+    if (!user) return "/Authentication_pages";
+    
+    const role = user.role; // Captures 'doctor', 'patient', or 'admin'
+    if (role === "doctor") {
+      return "/dashboard/doctor/profile";
+    } else if (role === "admin") {
+      return "/dashboard/admin";
+    } else {
+      return "/dashboard/patient"; // Fallback target route path for standard patients
+    }
+  };
+
   // Close user dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -42,6 +56,7 @@ export default function Navbar() {
     }
   };
 
+  console.log(user)
   return (
     <header className="w-full bg-white shadow-sm sticky top-0 z-50 font-sans">
       {/* MAIN LOGO & CALL-TO-ACTION BAR */}
@@ -98,7 +113,8 @@ export default function Navbar() {
                       <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
                       <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
                     </div>
-                    <Link href="/dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 transition-colors">
+                    {/* IMPLEMENTED: Dynamic context calculation inside user tracking dropdown menu view link structure */}
+                    <Link href={getDashboardRoute()} onClick={() => setDropdownOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 transition-colors">
                       <FiLayout className="text-sm text-slate-400" /> Dashboard
                     </Link>
                     <Link href="/dashboard/settings" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 transition-colors">
@@ -136,7 +152,8 @@ export default function Navbar() {
             <Link href="/find-doctors" className="hover:bg-slate-800 hover:text-white px-5 py-4 transition-colors">FIND DOCTORS</Link>
             <Link href="/about-us" className="hover:bg-slate-800 hover:text-white px-5 py-4 transition-colors">ABOUT US</Link>
             <Link href="/contact-us" className="hover:bg-slate-800 hover:text-white px-5 py-4 transition-colors">CONTACT US</Link>
-            <Link href="/dashboard" className="hover:bg-slate-800 hover:text-white px-5 py-4 transition-colors">DASHBOARD</Link>
+            {/* IMPLEMENTED: Updated desktop nav layout element link tracking endpoint logic */}
+            <Link href={getDashboardRoute()} className="hover:bg-slate-800 hover:text-white px-5 py-4 transition-colors">DASHBOARD</Link>
           </nav>
         </div>
       </div>
@@ -164,7 +181,8 @@ export default function Navbar() {
             <Link href="/find-doctors" onClick={() => setIsOpen(false)} className="px-6 py-4 hover:bg-slate-900 transition-colors">FIND DOCTORS</Link>
             <Link href="/about-us" onClick={() => setIsOpen(false)} className="px-6 py-4 hover:bg-slate-900 transition-colors">ABOUT US</Link>
             <Link href="/contact-us" onClick={() => setIsOpen(false)} className="px-6 py-4 hover:bg-slate-900 transition-colors">CONTACT US</Link>
-            <Link href="/dashboard" onClick={() => setIsOpen(false)} className="px-6 py-4 hover:bg-slate-900 transition-colors">DASHBOARD</Link>
+            {/* IMPLEMENTED: Updated dynamic responsive layout link route processing targeting parameter element */}
+            <Link href={getDashboardRoute()} onClick={() => setIsOpen(false)} className="px-6 py-4 hover:bg-slate-900 transition-colors">DASHBOARD</Link>
           </nav>
           
           {/* Mobile Action buttons */}
