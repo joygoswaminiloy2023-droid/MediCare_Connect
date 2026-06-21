@@ -148,7 +148,7 @@ export default function DoctorProfileManagement() {
     try {
       const result = await create_doc(payload);
       if (result.success) {
-        toast.success("Practitioner profile records successfully synchronized to MongoDB Atlas!");
+    toast.success("Please wait until the admin approves your request.");
       } else {
         toast.error(result.message || "Failed to process database sync request.");
       }

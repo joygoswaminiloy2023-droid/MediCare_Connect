@@ -69,7 +69,6 @@ export default function DoctorDashboardOverview() {
   ];
 
   return (
-    // FIXED: w-full and max-w-none here completely opens up the page flow layout space wrapper canvas container
     <div className="w-full flex-1 max-w-none space-y-8 animate-fadeIn">
       
       {/* HEADER SECTION */}
@@ -108,7 +107,6 @@ export default function DoctorDashboardOverview() {
       </div>
 
       {/* CHARTS DATA VISUALIZATION SECTION */}
-      {/* FIXED: grid tracks are forced explicitly onto full width layout matrices */}
       <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* AREA CHART */}
@@ -121,7 +119,6 @@ export default function DoctorDashboardOverview() {
             <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg">Monthly</span>
           </div>
           <div className="h-64 w-full text-xs font-semibold">
-            {/* ResponsiveContainer needs an accurate w-full declaration hook to recalculate display vectors natively */}
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={patientTrendData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
                 <defs>
@@ -169,7 +166,6 @@ export default function DoctorDashboardOverview() {
       </div>
 
       {/* RECENT ACTIVITY INTERACTION TABLE */}
-      {/* FIXED: Added w-full to table bounding structures */}
       <div className="w-full bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center w-full">
           <div>
