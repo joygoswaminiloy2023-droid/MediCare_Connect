@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation"; // Imported Next.js Client Router
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, ArrowRight, CheckCircle2, User, Stethoscope } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
@@ -11,7 +11,8 @@ import { authClient } from "@/lib/auth-client";
 import { FaHeartbeat } from "react-icons/fa";
 
 export default function AuthPage() {
-  const router = useRouter(); // Activated Router Hook
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -29,6 +30,13 @@ export default function AuthPage() {
   // Watch the role value live to update button selection active styles instantly
   const currentRole = watch("role");
 
+  // Catch banned-account redirect coming back from Google OAuth flow
+  useEffect(() => {
+    if (searchParams.get("error") === "banned") {
+      toast.error("Your account has been permanently banned.");
+    }
+  }, [searchParams]);
+
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
     setShowPassword(false);
@@ -40,6 +48,7 @@ export default function AuthPage() {
       await authClient.signIn.social({
         provider: "google",
         callbackURL: "/",
+        errorCallbackURL: "/auth?error=banned",
       });
     } catch (err) {
       toast.error("Google authentication failed.");
