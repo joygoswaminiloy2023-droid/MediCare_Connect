@@ -8,6 +8,7 @@ import {
   FaUserMd, FaThLarge, FaList, FaChevronDown, FaChevronUp,
   FaSpinner
 } from "react-icons/fa";
+import Link from "next/link";
 
 const SPECIALIZATIONS = [
   "All Types", "Cardiology", "Neurology", "Orthopedic Surgery",
@@ -79,6 +80,7 @@ function GridCard({ doc }) {
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
       className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden"
     >
+      <Link href={`/appointments/book/${doc._id}`}>
       <div className="relative h-52 bg-slate-100 overflow-hidden">
         <motion.div className="w-full h-full" whileHover={{ scale: 1.04 }} transition={{ duration: 0.35 }}>
           <Image src={src} alt={doc.doctorName || "Doctor"} width={400} height={300}
@@ -95,12 +97,11 @@ function GridCard({ doc }) {
           <span className="text-slate-400 font-medium text-[11px]">({doc.reviews || "120"})</span>
         </div>
         <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <a href={`/appointments/book/${doc._id}`}
-            className="bg-[#00A3E0] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow flex items-center gap-1 hover:bg-[#0082b3] transition-colors">
-            Book <FaArrowRight className="text-[9px]" />
-          </a>
+          
+          
         </div>
       </div>
+      </Link>
       <div className="p-5 flex flex-col flex-grow">
         <h3 className="text-base font-bold text-slate-900 group-hover:text-[#00A3E0] transition-colors leading-snug">
           {doc.doctorName || "Specialist"}
@@ -121,10 +122,10 @@ function GridCard({ doc }) {
               {doc.consultationFee || "500"} <span className="text-sm font-semibold text-slate-400">BDT</span>
             </span>
           </div>
-          <a href={`/appointments/book/${doc._id}`}
+          <Link href={`/appointments/book/${doc._id}`}
             className="bg-[#00A3E0] hover:bg-[#0082b3] active:scale-95 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5">
             Book Now <FaArrowRight className="text-[10px]" />
-          </a>
+          </Link>
         </div>
       </div>
     </motion.div>

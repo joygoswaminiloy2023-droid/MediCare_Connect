@@ -57,7 +57,7 @@ export default function AuthPage() {
 
   const onSubmit = async (data) => {
     try {
-      // 1. Force explicit validation match rules required by assignment guidelines
+    
       if (!isLogin) {
         const strongPasswordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{6,}$/;
         if (!strongPasswordRegex.test(data.password)) {

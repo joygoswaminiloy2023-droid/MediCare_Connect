@@ -9,7 +9,7 @@ import Image from 'next/image';
 
 export default function Navbar() {
   const router = useRouter();
-  const pathname = usePathname(); // ✅ track current route
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -25,8 +25,6 @@ export default function Navbar() {
     return "/dashboard/patient";
   };
 
-  // ── Active link helper ────────────────────────────────────────────────────
-  // Returns true if current path matches or starts with the given href
   const isActive = (href) => {
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(href + "/");
@@ -42,7 +40,6 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsOpen(false);
     setDropdownOpen(false);
@@ -60,19 +57,17 @@ export default function Navbar() {
 
   const dashboardRoute = getDashboardRoute();
 
-  // ── Desktop nav links ─────────────────────────────────────────────────────
   const NAV_LINKS = [
-    { href: "/",            label: "HOME" },
+    { href: "/", label: "HOME" },
     { href: "/find-doctors", label: "FIND DOCTORS" },
-    { href: "/about-us",    label: "ABOUT US" },
-    { href: "/contact-us",  label: "CONTACT US" },
-    
+    { href: "/about-us", label: "ABOUT US" },
+    { href: "/contact-us", label: "CONTACT US" },
   ];
 
   return (
     <header className="w-full bg-white shadow-sm sticky top-0 z-50 font-sans">
 
-      {/* ── Top Bar ─────────────────────────────────────────────────────── */}
+      {/* Top Bar */}
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
 
         {/* Brand */}
@@ -93,18 +88,6 @@ export default function Navbar() {
         {/* Right side */}
         <div className="flex items-center space-x-4">
           <div className="hidden lg:flex items-center space-x-4">
-
-            {/* Appointment Button */}
-            <Link href="/dashboard/patient"
-              className={`border-2 px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide transition-all duration-200 flex items-center gap-2 shadow-sm ${
-                isActive("/dashboard/patient")
-                  ? "bg-[#00A3E0] text-white border-[#00A3E0]"
-                  : "border-[#00A3E0] text-[#00A3E0] hover:bg-[#00A3E0] hover:text-white"
-              }`}>
-              <FaRegCalendarCheck className="text-sm" />
-              APPOINTMENT
-            </Link>
-
             {/* Auth */}
             {isPending ? (
               <div className="w-32 h-9 bg-slate-100 rounded-xl animate-pulse border border-slate-200" />
@@ -163,7 +146,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ── Desktop Nav Bar ──────────────────────────────────────────────── */}
+      {/* Desktop Nav Bar */}
       <div className="hidden lg:block w-full bg-slate-900 px-6">
         <div className="max-w-7xl mx-auto flex justify-start items-center">
           <nav className="flex items-center space-x-1 text-sm text-slate-200 font-bold">
@@ -171,11 +154,10 @@ export default function Navbar() {
               <Link key={href} href={href}
                 className={`relative px-5 py-4 transition-colors ${
                   isActive(href)
-                    ? "bg-[#00A3E0] text-white"           // ✅ active: blue fill
+                    ? "bg-[#00A3E0] text-white"
                     : "hover:bg-slate-800 hover:text-white text-slate-300"
                 }`}>
                 {label}
-                {/* Active underline dot indicator */}
                 {isActive(href) && (
                   <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/60" />
                 )}
@@ -185,7 +167,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ── Mobile Menu ──────────────────────────────────────────────────── */}
+      {/* Mobile Menu */}
       {isOpen && (
         <div className="lg:hidden bg-slate-950 text-white w-full border-t border-slate-800">
 
@@ -209,7 +191,7 @@ export default function Navbar() {
               <Link key={href} href={href} onClick={() => setIsOpen(false)}
                 className={`px-6 py-4 flex items-center justify-between transition-colors ${
                   isActive(href)
-                    ? "bg-[#00A3E0] text-white"           // ✅ active: blue
+                    ? "bg-[#00A3E0] text-white"
                     : "hover:bg-slate-900 text-slate-200"
                 }`}>
                 {label}
@@ -218,19 +200,63 @@ export default function Navbar() {
                 )}
               </Link>
             ))}
+
+            {/* ✅ Dashboard link for mobile */}
+            {!isPending && user && (
+              <Link href={dashboardRoute} onClick={() => setIsOpen(false)}
+                className={`px-6 py-4 flex items-center justify-between transition-colors ${
+                  isActive(dashboardRoute)
+                    ? "bg-[#00A3E0] text-white"
+                    : "hover:bg-slate-900 text-slate-200"
+                }`}>
+                <span className="flex items-center gap-3">
+                  <FiLayout className="text-base" />
+                  DASHBOARD
+                </span>
+                {isActive(dashboardRoute) && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
+                )}
+              </Link>
+            )}
+
+            {/* ✅ Settings link for mobile */}
+            {!isPending && user && (
+              <Link href="/dashboard/settings" onClick={() => setIsOpen(false)}
+                className={`px-6 py-4 flex items-center justify-between transition-colors ${
+                  isActive("/dashboard/settings")
+                    ? "bg-[#00A3E0] text-white"
+                    : "hover:bg-slate-900 text-slate-200"
+                }`}>
+                <span className="flex items-center gap-3">
+                  <FiSettings className="text-base" />
+                  SETTINGS
+                </span>
+                {isActive("/dashboard/settings") && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
+                )}
+              </Link>
+            )}
           </nav>
 
           {/* Mobile action buttons */}
           <div className="p-6">
             <div className="grid grid-cols-2 gap-3">
-              <Link href="/dashboard/patient" onClick={() => setIsOpen(false)}
-                className={`text-center py-3 rounded-xl font-bold text-xs tracking-wide transition-all flex items-center justify-center gap-2 border-2 ${
-                  isActive("/dashboard/patient")
-                    ? "bg-[#00A3E0] text-white border-[#00A3E0]"
-                    : "border-[#00A3E0] text-[#00A3E0] hover:bg-[#00A3E0] hover:text-white"
-                }`}>
-                <FaRegCalendarCheck /> APPOINTMENT
-              </Link>
+              {/* Appointment button - only show if user is logged in */}
+              {!isPending && user ? (
+                <Link href="/dashboard/patient" onClick={() => setIsOpen(false)}
+                  className={`text-center py-3 rounded-xl font-bold text-xs tracking-wide transition-all flex items-center justify-center gap-2 border-2 ${
+                    isActive("/dashboard/patient")
+                      ? "bg-[#00A3E0] text-white border-[#00A3E0]"
+                      : "border-[#00A3E0] text-[#00A3E0] hover:bg-[#00A3E0] hover:text-white"
+                  }`}>
+                  <FaRegCalendarCheck /> APPOINTMENT
+                </Link>
+              ) : (
+                <Link href="/find-doctors" onClick={() => setIsOpen(false)}
+                  className="border-2 border-[#00A3E0] text-[#00A3E0] hover:bg-[#00A3E0] hover:text-white py-3 rounded-xl font-bold text-xs tracking-wide transition-all flex items-center justify-center gap-2">
+                  <FaHeartbeat /> FIND DOCTORS
+                </Link>
+              )}
 
               {!isPending && user ? (
                 <button onClick={handleLogout}
