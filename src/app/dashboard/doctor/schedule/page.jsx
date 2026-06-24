@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Clock, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Clock, Loader2, AlertCircle, CheckCircle, Globe } from 'lucide-react';
 import { authClient } from "@/lib/auth-client";
 import { toast } from 'react-toastify';
 import { FaCross } from 'react-icons/fa';
@@ -17,6 +17,12 @@ export default function DoctorSchedulePage() {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // The doctor's REAL public availableSlots, as currently shown on the
+  // find-doctors listing & booking page. This is recomputed server-side
+  // from active DoctorSchedule entries every time one is added, toggled,
+  // or deleted below — so this panel always reflects what patients see.
+  const [liveSlots, setLiveSlots] = useState(null);
 
   const [form, setForm] = useState({
     dayOfWeek: "Monday",
@@ -41,9 +47,25 @@ export default function DoctorSchedulePage() {
     }
   };
 
+  // Fetch the doctor's current public profile so the "Live on your
+  // profile" panel has something to show before the first edit is made.
+  const fetchLiveSlots = async () => {
+    if (!doctorEmail) return;
+    try {
+      const res = await fetch(`${BACKEND}/api/doctors/profile/${doctorEmail}`);
+      const data = await res.json();
+      if (data.success) {
+        setLiveSlots(data.profile?.availableSlots || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch live slots:", err);
+    }
+  };
+
   useEffect(() => {
     if (!doctorEmail) return;
     fetchSchedules();
+    fetchLiveSlots();
     setLoading(false);
   }, [doctorEmail]);
 
@@ -65,6 +87,7 @@ export default function DoctorSchedulePage() {
       if (data.success) {
         toast.success("Time slot added!");
         setForm({ dayOfWeek: "Monday", startTime: "09:00 AM", endTime: "10:00 AM" });
+        if (data.availableSlots) setLiveSlots(data.availableSlots);
         // Refetch immediately
         await fetchSchedules();
       } else {
@@ -89,6 +112,7 @@ export default function DoctorSchedulePage() {
       const data = await res.json();
       if (data.success) {
         toast.success("Schedule deleted!");
+        if (data.availableSlots) setLiveSlots(data.availableSlots);
         await fetchSchedules();
       } else {
         toast.error(data.message);
@@ -110,6 +134,7 @@ export default function DoctorSchedulePage() {
       const data = await res.json();
       if (data.success) {
         toast.success(schedule.isActive ? "Disabled " : "Enabled ");
+        if (data.availableSlots) setLiveSlots(data.availableSlots);
         await fetchSchedules();
       }
     } catch (err) {
@@ -136,6 +161,33 @@ export default function DoctorSchedulePage() {
       <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
         <h1 className="text-3xl font-black text-slate-900">Manage Practice Schedule</h1>
         <p className="text-sm text-slate-500 mt-2">Configure your operational consultation windows</p>
+      </div>
+
+      {/* Live-on-profile panel — proves the schedule below is actually
+          driving what patients see, instead of a static signup-time value */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
+        <h2 className="text-sm font-black text-slate-900 mb-3 flex items-center gap-2">
+          <Globe size={16} className="text-[#00A3E0]" />
+          Live on Your Public Profile
+        </h2>
+        {liveSlots === null ? (
+          <p className="text-xs text-slate-400">Loading...</p>
+        ) : liveSlots.length === 0 ? (
+          <p className="text-xs text-slate-400">
+            No active time slots yet — patients won't see any bookable hours until you add one below.
+          </p>
+        ) : (
+          <div className="flex gap-2 flex-wrap">
+            {liveSlots.map((slot, i) => (
+              <span key={i} className="bg-blue-50 text-[#00A3E0] text-[11px] font-bold px-3 py-1.5 rounded-lg border border-blue-100">
+                {slot}
+              </span>
+            ))}
+          </div>
+        )}
+        <p className="text-[10px] text-slate-400 mt-3">
+          This updates automatically whenever you add, enable/disable, or delete a slot below.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
