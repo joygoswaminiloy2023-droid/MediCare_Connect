@@ -28,6 +28,8 @@ export default function BookingPage({ params }) {
   const [patientId, setPatientId] = useState(null);
   const [isRestricted, setIsRestricted] = useState(false);
   const [restrictedUntil, setRestrictedUntil] = useState(null);
+  const [restrictionReason, setRestrictionReason] = useState("");
+  const [restrictionMessage, setRestrictionMessage] = useState("");
 
   const [form, setForm] = useState({
     patientName: "",
@@ -50,10 +52,10 @@ export default function BookingPage({ params }) {
         if (data.success) {
           if (data.status === "confirmed") {
             setDoctorAccepted(true);
-            toast.success("🎉 Doctor accepted your request! Ready to pay.", { position: "top-center" });
+            toast.success(" Doctor accepted your request! Ready to pay.", { position: "top-center" });
             clearInterval(pollInterval);
           } else if (data.status === "rejected") {
-            toast.error(`❌ Doctor rejected: ${data.appointment.rejectionReason}`, { position: "top-center" });
+            toast.error(` Doctor rejected: ${data.appointment.rejectionReason}`, { position: "top-center" });
             setAppointmentRequested(false);
             clearInterval(pollInterval);
           }
@@ -94,22 +96,54 @@ export default function BookingPage({ params }) {
             patientEmail: user.email || "",
           }));
 
-          // ✅ CHECK RESTRICTION
+          // CHECK RESTRICTION AND SHOW TOAST
           checkUserRestriction(user.email);
         }
       })
       .catch(() => {});
   }, []);
 
-  // ✅ NEW: Check if user is restricted
+  // Check if user is restricted and show toast
   const checkUserRestriction = async (email) => {
     try {
       const res = await fetch(`${BACKEND}/api/appointments/check-restriction/${encodeURIComponent(email)}`);
       const data = await res.json();
 
-      if (data.success && data.status !== "active") {
-        setIsRestricted(true);
-        setRestrictedUntil(data.until);
+      if (data.success) {
+        // Handle different statuses
+        if (data.status === "banned") {
+          setIsRestricted(true);
+          setRestrictionReason(data.reason || "Banned");
+          setRestrictionMessage(data.message || "Your account has been permanently banned.");
+          
+          // SHOW TOAST FOR BANNED
+          toast.error(`${data.message || "Your account has been permanently banned. Please contact support."}`, {
+            position: "top-center",
+            autoClose: false,
+            closeOnClick: true,
+            draggable: false,
+          });
+          
+        } else if (data.status === "restricted") {
+          setIsRestricted(true);
+          setRestrictedUntil(data.until);
+          setRestrictionReason(data.reason || "Restricted");
+          setRestrictionMessage(data.message || "Your account has been restricted.");
+          
+          // SHOW TOAST FOR RESTRICTED
+          const untilDate = data.until ? new Date(data.until).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : "unknown date";
+          
+          toast.warning(` ${data.message || `Your account is restricted until ${untilDate}. You cannot book appointments.`}`, {
+            position: "top-center",
+            autoClose: false,
+            closeOnClick: true,
+            draggable: false,
+          });
+        }
       }
     } catch (err) {
       console.error("Restriction check error:", err);
@@ -149,17 +183,45 @@ export default function BookingPage({ params }) {
       });
 
       const data = await res.json();
+      
       if (data.success) {
-        toast.success("✅ Request sent! Waiting for doctor approval...", { position: "top-center" });
+        toast.success("Request sent! Waiting for doctor approval...", { position: "top-center" });
         setAppointmentRequested(true);
         setPendingAppointmentId(data.appointmentId);
       } else {
         // Check if it's a restriction error
-        if (data.status === "restricted" || data.status === "banned") {
+        if (data.status === "restricted") {
+          const untilDate = data.until ? new Date(data.until).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : "unknown date";
+          
+          const message = `You are restricted from booking until ${untilDate}.`;
+          toast.error(message, { 
+            position: "top-center",
+            autoClose: false,
+            closeOnClick: true,
+            draggable: false,
+          });
           setIsRestricted(true);
           setRestrictedUntil(data.until);
+          setRestrictionMessage(data.message || message);
+          
+        } else if (data.status === "banned") {
+          const message = "🚫 Your account is permanently banned. Please contact support.";
+          toast.error(message, { 
+            position: "top-center",
+            autoClose: false,
+            closeOnClick: true,
+            draggable: false,
+          });
+          setIsRestricted(true);
+          setRestrictionMessage(data.message || message);
+          
+        } else {
+          toast.error(data.message || "Failed to request appointment.", { position: "top-center" });
         }
-        toast.error(data.message, { position: "top-center" });
       }
     } catch (err) {
       console.error(err);
@@ -194,7 +256,7 @@ export default function BookingPage({ params }) {
       if (data.success && data.url) {
         window.location.href = data.url;
       } else {
-        toast.error(data.message, { position: "top-center" });
+        toast.error(data.message || "Failed to create payment.", { position: "top-center" });
       }
     } catch (err) {
       console.error(err);
@@ -230,8 +292,10 @@ export default function BookingPage({ params }) {
     );
   }
 
-  // ✅ SHOW RESTRICTION MESSAGE
+  // SHOW RESTRICTION MESSAGE PAGE
   if (isRestricted) {
+    const isBanned = restrictionReason.toLowerCase().includes("banned") || restrictionMessage.toLowerCase().includes("banned");
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 px-4 py-16">
         <div className="max-w-md w-full">
@@ -241,24 +305,40 @@ export default function BookingPage({ params }) {
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
             className="flex justify-center mb-6"
           >
-            <div className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center">
-              <Ban className="text-red-500 text-5xl" />
+            <div className={`w-24 h-24 rounded-full ${isBanned ? 'bg-red-100' : 'bg-orange-100'} flex items-center justify-center`}>
+              <Ban className={`${isBanned ? 'text-red-500' : 'text-orange-500'} text-5xl`} />
             </div>
           </motion.div>
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-black text-slate-900 mb-3">Booking Restricted</h1>
+            <h1 className="text-3xl font-black text-slate-900 mb-3">
+              {isBanned ? 'Account Banned' : 'Booking Restricted'}
+            </h1>
             <p className="text-slate-600 text-sm">
-              Your account has booking restrictions.
-              {restrictedUntil && (
-                <> Your restriction will be lifted on <span className="font-bold">{new Date(restrictedUntil).toLocaleDateString()}</span>.</>
+              {isBanned 
+                ? 'Your account has been permanently banned.'
+                : 'Your account has booking restrictions.'
+              }
+              {restrictedUntil && !isBanned && (
+                <> Your restriction will be lifted on <span className="font-bold">{new Date(restrictedUntil).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}</span>.</>
               )}
             </p>
           </div>
 
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-5 mb-6">
-            <p className="text-sm text-red-700 font-bold mb-3">Why is this happening?</p>
-            <p className="text-xs text-red-600">Your account has been restricted by our admin team for policy violations. Please contact support for more information.</p>
+          <div className={`${isBanned ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'} border rounded-2xl p-5 mb-6`}>
+            <p className={`text-sm ${isBanned ? 'text-red-700' : 'text-orange-700'} font-bold mb-3`}>
+              {isBanned ? 'Why is this happening?' : 'Restriction Details'}
+            </p>
+            <p className={`text-xs ${isBanned ? 'text-red-600' : 'text-orange-600'}`}>
+              {restrictionMessage || (isBanned 
+                ? 'Your account has been permanently banned by our admin team for policy violations.'
+                : 'Your account has been restricted by our admin team for policy violations. Please contact support for more information.'
+              )}
+            </p>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -267,7 +347,7 @@ export default function BookingPage({ params }) {
               Back to Find Doctors
             </a>
             <a href="/contact"
-              className="text-center bg-red-500 hover:bg-red-600 text-white font-bold text-xs py-3.5 rounded-xl transition-colors">
+              className={`text-center ${isBanned ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'} text-white font-bold text-xs py-3.5 rounded-xl transition-colors`}>
               Contact Support
             </a>
           </div>

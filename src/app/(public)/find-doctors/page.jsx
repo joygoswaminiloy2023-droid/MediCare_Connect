@@ -1,18 +1,21 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaStar, FaCheckCircle, FaSearch, FaFilter,
   FaTimes, FaArrowRight, FaStethoscope, FaHospital,
   FaUserMd, FaThLarge, FaList, FaChevronDown, FaChevronUp,
-  FaSpinner
+  FaSpinner, FaExclamationTriangle, FaShieldAlt, FaLock,
+  FaSignInAlt, FaBan, FaCalendarTimes, FaExclamationCircle
 } from "react-icons/fa";
-import Link from "next/link";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // ── Currency Conversion ──────────────────────────────────────────────────
 const convertToBDT = (usdAmount) => {
-  const conversionRate = 110; // 1 USD = 110 BDT
+  const conversionRate = 110;
   return (usdAmount * conversionRate).toFixed(2);
 };
 
@@ -35,7 +38,6 @@ const cardVariants = {
 };
 const gridVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.06 } } };
 
-// ── Build query string from filter state ────────────────────────────────────
 function buildQuery({ search, specialization, minRating, maxFee, page, limit }) {
   const params = new URLSearchParams();
   if (search.trim())                      params.set("search", search.trim());
@@ -76,12 +78,12 @@ function SkeletonList() {
   );
 }
 
-function GridCard({ doc }) {
+// ── GridCard ──────────────────────────────────────────────────────────────
+function GridCard({ doc, onBookClick }) {
   const [imgErr, setImgErr] = useState(false);
   const src = (!imgErr && (doc.image || doc.profileImage))
     || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=600";
 
-  // Get fee in USD (fallback to 50 if not provided)
   const feeUSD = doc.consultationFee || doc.fee || 50;
   const feeBDT = convertToBDT(feeUSD);
 
@@ -122,7 +124,6 @@ function GridCard({ doc }) {
           <p className="text-[11px] text-slate-400 truncate">{doc.hospitalName || "Clinic"}</p>
         </div>
         
-        {/* Updated Fee Section with Both Currencies */}
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
           <div>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">Consultation</span>
@@ -135,16 +136,17 @@ function GridCard({ doc }) {
               </div>
             </div>
           </div>
-          <Link href={`/appointments/book/${doc._id}`}
-            className="bg-[#00A3E0] hover:bg-[#0082b3] active:scale-95 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+          <button
+            onClick={() => onBookClick(doc._id)}
+            className="bg-[#00A3E0] hover:bg-[#0082b3] active:scale-95 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+          >
             Book Now <FaArrowRight className="text-[10px]" />
-          </Link>
+          </button>
         </div>
         
-        {/* Exchange Rate Indicator */}
         <div className="mt-2 pt-1.5 border-t border-slate-50/50">
           <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
-            <span>💱</span>
+            <FaArrowRight className="text-[8px]" />
             <span>1 USD = ৳110 BDT</span>
           </div>
         </div>
@@ -153,12 +155,12 @@ function GridCard({ doc }) {
   );
 }
 
-function ListCard({ doc }) {
+// ── ListCard ──────────────────────────────────────────────────────────────
+function ListCard({ doc, onBookClick }) {
   const [imgErr, setImgErr] = useState(false);
   const src = (!imgErr && (doc.image || doc.profileImage))
     || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=600";
 
-  // Get fee in USD (fallback to 50 if not provided)
   const feeUSD = doc.consultationFee || doc.fee || 50;
   const feeBDT = convertToBDT(feeUSD);
 
@@ -205,15 +207,12 @@ function ListCard({ doc }) {
               ))}
           </div>
         )}
-        
-        {/* Exchange Rate Indicator for List View */}
         <div className="mt-2 flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
-          <span>💱</span>
+          <FaArrowRight className="text-[8px]" />
           <span>1 USD = ৳110 BDT</span>
         </div>
       </div>
       
-      {/* Updated Fee Section with Both Currencies */}
       <div className="flex-shrink-0 flex flex-col items-end gap-2">
         <div className="text-right">
           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">Fee</span>
@@ -226,10 +225,12 @@ function ListCard({ doc }) {
             </div>
           </div>
         </div>
-        <Link href={`/appointments/book/${doc._id}`}
-          className="bg-[#00A3E0] hover:bg-[#0082b3] text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 whitespace-nowrap">
+        <button
+          onClick={() => onBookClick(doc._id)}
+          className="bg-[#00A3E0] hover:bg-[#0082b3] text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 whitespace-nowrap"
+        >
           Book Now <FaArrowRight className="text-[10px]" />
-        </Link>
+        </button>
       </div>
     </motion.div>
   );
@@ -254,7 +255,6 @@ function FilterPanel({ activeSpec, setActiveSpec, minRating, setMinRating, maxFe
         )}
       </div>
 
-      {/* Doctor Type */}
       <div className="border-b border-slate-100">
         <button onClick={() => toggle("type")}
           className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
@@ -281,7 +281,6 @@ function FilterPanel({ activeSpec, setActiveSpec, minRating, setMinRating, maxFe
         </AnimatePresence>
       </div>
 
-      {/* Rating */}
       <div className="border-b border-slate-100">
         <button onClick={() => toggle("rating")}
           className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
@@ -309,7 +308,6 @@ function FilterPanel({ activeSpec, setActiveSpec, minRating, setMinRating, maxFe
         </AnimatePresence>
       </div>
 
-      {/* Price */}
       <div>
         <button onClick={() => toggle("price")}
           className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
@@ -344,7 +342,8 @@ function FilterPanel({ activeSpec, setActiveSpec, minRating, setMinRating, maxFe
                   ))}
                 </div>
                 <div className="mt-3 text-[10px] text-slate-400 font-medium text-center">
-                  💱 1 USD = ৳110 BDT
+                  <FaArrowRight className="text-[8px] inline" />
+                  <span> 1 USD = ৳110 BDT</span>
                 </div>
               </div>
             </motion.div>
@@ -369,8 +368,10 @@ export default function FindDoctorsPage() {
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PER_PAGE = view === "grid" ? 9 : 8;
+  const [userEmail, setUserEmail]     = useState(null);
+  const [isChecking, setIsChecking]   = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
-  // Debounce search so we don't hit backend on every keystroke
   const searchTimeout = useRef(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -380,7 +381,20 @@ export default function FindDoctorsPage() {
     return () => clearTimeout(searchTimeout.current);
   }, [search]);
 
-  // ── Fetch from backend whenever filters change ───────────────────────────
+  // ── Get current user session ──────────────────────────────────────────
+  useEffect(() => {
+    fetch("/api/auth/get-session")
+      .then(r => r.json())
+      .then(data => {
+        const user = data?.user || data?.data?.user;
+        if (user) {
+          setUserEmail(user.email);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Fetch from backend ────────────────────────────────────────────────
   const fetchDoctors = useCallback(async () => {
     setLoading(true);
     try {
@@ -403,6 +417,10 @@ export default function FindDoctorsPage() {
       }
     } catch (err) {
       console.error("Fetch failed:", err);
+      toast.error("Failed to load doctors. Please try again.", {
+        position: "top-center",
+        autoClose: 3000,
+      });
     } finally {
       setLoading(false);
     }
@@ -410,7 +428,6 @@ export default function FindDoctorsPage() {
 
   useEffect(() => { fetchDoctors(); }, [fetchDoctors]);
 
-  // Reset to page 1 when filters change
   useEffect(() => { setCurrentPage(1); }, [debouncedSearch, activeSpec, minRating, maxFee, view]);
 
   const clearFilters = () => {
@@ -418,6 +435,96 @@ export default function FindDoctorsPage() {
   };
 
   const hasActive = debouncedSearch || activeSpec !== "All Types" || minRating > 0 || maxFee < 1000;
+
+  // ── Handle Book Now click with restriction check ──────────────────────
+  const handleBookClick = async (doctorId) => {
+    if (isChecking || redirecting) return;
+    
+    if (!userEmail) {
+      toast.warning(
+        <div className="flex items-center gap-2">
+          <FaSignInAlt className="text-yellow-500" />
+          <span>Please login to book an appointment.</span>
+        </div>,
+        {
+          position: "top-center",
+          autoClose: 3000,
+          toastId: "login-required"
+        }
+      );
+      
+      setRedirecting(true);
+      setTimeout(() => {
+        window.location.href = "/Authentication_pages";
+      }, 1500);
+      return;
+    }
+
+    setIsChecking(true);
+    try {
+      const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+      const res = await fetch(`${BACKEND}/api/appointments/check-restriction/${encodeURIComponent(userEmail)}`);
+      const data = await res.json();
+
+      if (data.success && data.status === "restricted") {
+        const untilDate = data.until ? new Date(data.until).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }) : "unknown date";
+        
+        toast.error(
+          <div className="flex items-center gap-2">
+            <FaCalendarTimes className="text-red-500" />
+            <span>You are restricted from booking until {untilDate}</span>
+          </div>,
+          {
+            position: "top-center",
+            autoClose: 5000,
+            closeOnClick: true,
+            toastId: "restricted-toast"
+          }
+        );
+        setIsChecking(false);
+        return;
+      }
+
+      if (data.success && data.status === "banned") {
+        toast.error(
+          <div className="flex items-center gap-2">
+            <FaBan className="text-red-500" />
+            <span>Your account is permanently banned. Please contact support.</span>
+          </div>,
+          {
+            position: "top-center",
+            autoClose: 5000,
+            closeOnClick: true,
+            toastId: "banned-toast"
+          }
+        );
+        setIsChecking(false);
+        return;
+      }
+
+      // If not restricted, navigate to booking page
+      window.location.href = `/appointments/book/${doctorId}`;
+
+    } catch (error) {
+      console.error("Restriction check error:", error);
+      toast.error(
+        <div className="flex items-center gap-2">
+          <FaExclamationCircle className="text-red-500" />
+          <span>Error checking restrictions. Please try again.</span>
+        </div>,
+        {
+          position: "top-center",
+          autoClose: 3000,
+          toastId: "check-error"
+        }
+      );
+      setIsChecking(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -505,7 +612,7 @@ export default function FindDoctorsPage() {
               </div>
             </div>
 
-            {/* Active filter tags - Updated to show USD */}
+            {/* Active filter tags */}
             {hasActive && (
               <div className="flex gap-2 flex-wrap mb-4">
                 {activeSpec !== "All Types" && (
@@ -562,8 +669,8 @@ export default function FindDoctorsPage() {
                     className={view === "grid" ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
                     {doctors.map(doc =>
                       view === "grid"
-                        ? <GridCard key={doc._id} doc={doc} />
-                        : <ListCard key={doc._id} doc={doc} />
+                        ? <GridCard key={doc._id} doc={doc} onBookClick={handleBookClick} />
+                        : <ListCard key={doc._id} doc={doc} onBookClick={handleBookClick} />
                     )}
                   </motion.div>
                 </AnimatePresence>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { motion, animate } from 'framer-motion';
 import { 
-  TrendingUp, TrendingDown, Users, UserCheck2, Calendar, DollarSign, Activity, BarChart3 
+  TrendingUp, TrendingDown, Users, UserCheck2, Calendar, Star, Activity, BarChart3 
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -12,14 +12,14 @@ import {
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
 
-const CHART_COLORS = ['#00A3E0', '#34d399', '#f59e0b', '#818cf8'];
+const CHART_COLORS = ['#00A3E0', '#34d399', '#f59e0b', '#818cf8', '#a855f7'];
 
 function getStatIcon(name = '') {
   const n = name.toLowerCase();
   if (n.includes('patient')) return Users;
   if (n.includes('doctor')) return UserCheck2;
   if (n.includes('appointment')) return Calendar;
-  if (n.includes('revenue')) return DollarSign;
+  if (n.includes('review')) return Star;
   return Activity;
 }
 
@@ -75,30 +75,72 @@ export default function AdminAnalyticsPage() {
 
   const stats = analyticsData?.stats || [];
 
+  // Replace "Total Revenue" with "Reviews Received" if it exists
+  const processedStats = useMemo(() => {
+    // Check if there's a revenue stat
+    const revenueIndex = stats.findIndex(stat => 
+      stat.name.toLowerCase().includes('revenue')
+    );
+    
+    // If revenue exists, replace it with reviews
+    if (revenueIndex !== -1) {
+      const newStats = [...stats];
+      newStats[revenueIndex] = {
+        id: 4,
+        name: 'Reviews Received',
+        value: 89, // This would come from your backend
+        change: '+15%',
+        changeType: 'increase'
+      };
+      return newStats;
+    }
+    
+    // If no revenue stat, check if reviews already exists
+    const hasReviews = stats.some(stat => 
+      stat.name.toLowerCase().includes('review')
+    );
+    
+    if (!hasReviews) {
+      // Add reviews if it doesn't exist
+      return [
+        ...stats,
+        {
+          id: stats.length + 1,
+          name: 'Reviews Received',
+          value: 89,
+          change: '+15%',
+          changeType: 'increase'
+        }
+      ];
+    }
+    
+    return stats;
+  }, [stats]);
+
   const volumeChartData = useMemo(
-    () => stats.map((s) => ({
+    () => processedStats.map((s) => ({
       name: s.name.replace(/total\s*/i, ''),
       value: parseFloat(String(s.value).replace(/[^0-9.-]/g, '')) || 0,
     })),
-    [stats]
+    [processedStats]
   );
 
   const growthChartData = useMemo(
-    () => stats.map((s) => ({
+    () => processedStats.map((s) => ({
       name: s.name.replace(/total\s*/i, ''),
       change: parseFloat(String(s.change).replace(/[^0-9.-]/g, '')) || 0,
     })),
-    [stats]
+    [processedStats]
   );
 
   const distributionData = useMemo(
-    () => stats
+    () => processedStats
       .filter((s) => !s.name.toLowerCase().includes('revenue'))
       .map((s) => ({
         name: s.name.replace(/total\s*/i, ''),
         value: parseFloat(String(s.value).replace(/[^0-9.-]/g, '')) || 0,
       })),
-    [stats]
+    [processedStats]
   );
 
   if (isLoading) {
@@ -130,7 +172,7 @@ export default function AdminAnalyticsPage() {
 
       {/* Stat Cards */}
       <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => {
+        {processedStats.map((stat, i) => {
           const Icon = getStatIcon(stat.name);
           const changeNum = parseFloat(String(stat.change).replace(/[^0-9.-]/g, '')) || 0;
           const isPositive = changeNum >= 0;

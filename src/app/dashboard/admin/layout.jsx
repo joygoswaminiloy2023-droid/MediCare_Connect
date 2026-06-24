@@ -5,9 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   Users, BarChart3, Calendar, CreditCard, UserCheck2, Home, HeartPulse, Menu, X, Settings, LogOut 
 } from 'lucide-react';
-import { ToastContainer } from 'react-toastify';
 import { authClient } from "@/lib/auth-client";
-import 'react-toastify/dist/ReactToastify.css';
 
 export default function AdminDashboardLayout({ children }) {
   const router = useRouter();
@@ -79,7 +77,7 @@ export default function AdminDashboardLayout({ children }) {
         <div className="flex-1 overflow-y-auto p-6 md:p-10">
           {children}
         </div>
-        <ToastContainer position="bottom-right" />
+       
       </main>
     </div>
   );
