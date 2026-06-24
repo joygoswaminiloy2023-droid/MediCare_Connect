@@ -52,6 +52,25 @@ export const auth = betterAuth({
       },
     },
   },
+  // ✅ ENSURE ROLE IS INCLUDED IN SESSION
+  session: {
+    customSessionValidationFn: async (session, raw) => {
+      if (!session.userId) return null;
+
+      const user = await findUserById(session.userId);
+      if (!user) return null;
+
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          role: user.role || "patient",
+          status: user.status || "active",
+        },
+      };
+    },
+  },
+
   databaseHooks: {
     user: {
       create: {
@@ -86,12 +105,8 @@ export const auth = betterAuth({
         return user;
       },
     },
-    // NOTE: the banned-account check used to live here as a
-    // session.create.before throw. That breaks the Google OAuth
-    // redirect flow — better-auth returns the raw APIError as JSON
-    // instead of redirecting to errorCallbackURL. Moved to hooks.after
-    // below so we can control the redirect ourselves.
   },
+
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
       const newSession = ctx.context.newSession;
@@ -106,15 +121,11 @@ export const auth = betterAuth({
       const isOAuthCallback = ctx.path?.startsWith("/callback");
 
       if (isOAuthCallback) {
-        // Full browser navigation (Google sign-in) — redirect back to
-        // the frontend so AuthPage's useEffect can show the toast.
         const redirectURL = new URL("/Authentication_pages", ctx.context.baseURL);
         redirectURL.searchParams.set("error", "banned");
         throw ctx.redirect(redirectURL.toString());
       }
 
-      // Email/password sign-in is a fetch() call — a plain APIError
-      // comes back as JSON that authClient.signIn.email can read.
       throw new APIError("FORBIDDEN", {
         message: "Your account has been permanently banned.",
       });

@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { Eye, EyeOff, ArrowRight, CheckCircle2, User, Stethoscope } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, CheckCircle2, User, Stethoscope, Loader2 } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -27,13 +26,11 @@ export default function AuthPage() {
     defaultValues: { name: "", email: "", password: "", image: "", role: "patient" }
   });
 
-  // Watch the role value live to update button selection active styles instantly
   const currentRole = watch("role");
 
-  // Catch banned-account redirect coming back from Google OAuth flow
   useEffect(() => {
     if (searchParams.get("error") === "banned") {
-      toast.error("Your account has been permanently banned.");
+      toast.error("❌ Your account has been permanently banned.");
     }
   }, [searchParams]);
 
@@ -43,57 +40,44 @@ export default function AuthPage() {
     reset({ name: "", email: "", password: "", image: "", role: "patient" });
   };
 
-  // Helper function to redirect based on role
-  const redirectBasedOnRole = async () => {
-    try {
-      // Get the current session to fetch user data
-      const { data: session } = await authClient.getSession();
-      
-      if (!session || !session.user) {
-        console.error("No session found");
-        router.push("/");
-        return;
-      }
-
-      const userRole = session.user.role || "patient";
-      console.log("User role:", userRole); // For debugging
-
-      // Redirect based on role
-      if (userRole === "admin") {
-        router.push("/dashboard/admin/analytics");
-      } else if (userRole === "doctor") {
+  // REDIRECT BASED ON ROLE
+  const redirectBasedOnRole = async (role) => {
+    toast.success(isLogin ? "Welcome back!" : "Account created!");
+    
+    setTimeout(() => {
+      if (role === "admin") {
+        router.push("/dashboard/admin");
+      } else if (role === "doctor") {
         router.push("/dashboard/doctor");
       } else {
-        router.push("/");
+        router.push("/dashboard/patient");
       }
       router.refresh();
-    } catch (error) {
-      console.error("Error getting session:", error);
-      router.push("/");
-    }
+    }, 800);
   };
 
   const handleGoogleSignIn = async () => {
     try {
-      const response = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/Authentication_pages",
-        errorCallbackURL: "/Authentication_pages?error=banned",
-      });
-
-      if (response?.error) {
-        toast.error(response.error.message || "Google authentication failed.");
-      } else {
-        toast.success("Google sign-in successful!");
-        
-        // Wait a moment for session to be established
-        setTimeout(async () => {
-          await redirectBasedOnRole();
-        }, 1000);
-      }
+      await authClient.signIn.social(
+        { provider: "google" },
+        {
+          onSuccess: (ctx) => {
+            // Get user role from session
+            const userRole = ctx?.data?.user?.role || "patient";
+            redirectBasedOnRole(userRole);
+          },
+          onError: (err) => {
+            if (err.message?.includes("banned")) {
+              toast.error("Your account has been banned.");
+            } else {
+              toast.error(err.message || "Google sign-in failed");
+            }
+          },
+        }
+      );
     } catch (err) {
       console.error(err);
-      toast.error("Google authentication failed.");
+      toast.error("Google sign-in failed");
     }
   };
 
@@ -102,42 +86,46 @@ export default function AuthPage() {
       if (!isLogin) {
         const strongPasswordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{6,}$/;
         if (!strongPasswordRegex.test(data.password)) {
-          toast.error("Password must be at least 6 characters, including 1 number & 1 special character.");
+          toast.error("Password: min 6 chars, 1 number & 1 special char");
           return;
         }
       }
 
-      const response = isLogin
-        ? await authClient.signIn.email({
-            email: data.email,
-            password: data.password,
-            callbackURL: "/Authentication_pages"
-          })
-        : await authClient.signUp.email({
-            name: data.name,
-            email: data.email,
-            password: data.password,
-            image: data.image,
-            role: data.role || "patient",
-            callbackURL: "/Authentication_pages"
-          });
+      if (isLogin) {
+        
+        const { data: loginData, error } = await authClient.signIn.email({
+          email: data.email,
+          password: data.password,
+        });
 
-      if (response?.error || response?.data === null) {
-        toast.error(response?.error?.message || "Authentication processing failed.");
+        if (error) {
+          toast.error(error.message || "Login failed");
+          return;
+        }
+
+        // Use the role from form (for login, use form role or get from session)
+        const userRole = loginData?.user?.role || data.role || "patient";
+        redirectBasedOnRole(userRole);
       } else {
-        toast.success(isLogin ? "Welcome back! Login Successful." : "Account Created Successfully!");
+        
+        const { data: signupData, error } = await authClient.signUp.email({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          image: data.image || undefined,
+          role: data.role || "patient",
+        });
 
-        // Clear form inputs
-        reset();
+        if (error) {
+          toast.error(error.message || "Sign up failed");
+          return;
+        }
 
-        // Wait a moment for session to be established
-        setTimeout(async () => {
-          await redirectBasedOnRole();
-        }, 1000);
+        redirectBasedOnRole(data.role);
       }
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong during data transmission.");
+      toast.error("Something went wrong");
     }
   };
 
@@ -147,7 +135,7 @@ export default function AuthPage() {
 
       <div className="relative w-full max-w-[1000px] min-h-[720px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
 
-        {/* --- FORM CONTAINER --- */}
+        {/* FORM CONTAINER */}
         <div
           className={`w-full md:w-1/2 h-full flex flex-col justify-center px-8 sm:px-16 py-10 transition-all duration-700 ease-in-out z-10 ${
             isLogin ? "md:translate-x-0" : "md:translate-x-full"
@@ -166,15 +154,16 @@ export default function AuthPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
             {!isLogin && (
               <>
-                {/* ROLE SELECTION CONTAINER */}
+                {/* ROLE SELECTION */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Select Account Type</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                    Account Type
+                  </label>
 
-                  {/* Patient & Doctor Selector Buttons */}
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => setValue("role", "patient", { shouldValidate: true })}
+                      onClick={() => setValue("role", "patient")}
                       className={`flex items-center justify-center gap-2 p-3 border rounded-xl font-semibold text-xs transition-all ${
                         currentRole === "patient"
                           ? "border-[#00A3E0] bg-[#e6f6fc] text-[#00A3E0] shadow-sm"
@@ -187,7 +176,7 @@ export default function AuthPage() {
 
                     <button
                       type="button"
-                      onClick={() => setValue("role", "doctor", { shouldValidate: true })}
+                      onClick={() => setValue("role", "doctor")}
                       className={`flex items-center justify-center gap-2 p-3 border rounded-xl font-semibold text-xs transition-all ${
                         currentRole === "doctor"
                           ? "border-[#00A3E0] bg-[#e6f6fc] text-[#00A3E0] shadow-sm"
@@ -199,27 +188,34 @@ export default function AuthPage() {
                     </button>
                   </div>
 
-                  {/* Subtle Admin Selector option */}
+                  {/* Admin Option */}
                   <div className="flex items-center justify-start pt-1">
                     <button
                       type="button"
-                      onClick={() => setValue("role", "admin", { shouldValidate: true })}
+                      onClick={() => setValue("role", "admin")}
                       className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${
-                        currentRole === "admin" ? "text-[#00A3E0] font-bold" : "text-slate-400 hover:text-slate-600"
+                        currentRole === "admin" 
+                          ? "text-[#00A3E0] font-bold" 
+                          : "text-slate-400 hover:text-slate-600"
                       }`}
                     >
                       <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${
                         currentRole === "admin" ? "border-[#00A3E0]" : "border-slate-300"
                       }`}>
-                        {currentRole === "admin" && <div className="w-1.5 h-1.5 rounded-full bg-[#00A3E0]" />}
+                        {currentRole === "admin" && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#00A3E0]" />
+                        )}
                       </div>
                       Register as System Admin
                     </button>
                   </div>
                 </div>
 
+                {/* NAME */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Full Name</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                    Full Name
+                  </label>
                   <input
                     type="text"
                     placeholder="Enter Your Name"
@@ -227,8 +223,12 @@ export default function AuthPage() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0] transition-all"
                   />
                 </div>
+
+                {/* IMAGE URL */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Image URL (Optional)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                    Profile Image (Optional)
+                  </label>
                   <input
                     type="url"
                     placeholder="https://example.com/photo.jpg"
@@ -239,42 +239,80 @@ export default function AuthPage() {
               </>
             )}
 
+            {/* EMAIL */}
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Email Address</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                Email Address
+              </label>
               <input
                 type="email"
-                {...register("email", { required: true })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0]"
+                placeholder="you@example.com"
+                {...register("email", { required: "Email is required" })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0] transition-all"
               />
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email.message}</p>
+              )}
             </div>
 
+            {/* PASSWORD */}
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Password</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  {...register("password", { required: true })}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0]"
+                  placeholder="••••••••"
+                  {...register("password", { required: "Password is required" })}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00A3E0] transition-all"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-xs text-red-500">{errors.password.message}</p>
+              )}
             </div>
 
-            <button type="submit" disabled={isSubmitting} className="w-full bg-[#00A3E0] hover:bg-[#0a8ebe] text-white font-bold py-3.5 rounded-xl shadow-lg transition-all mt-4 flex items-center justify-center">
+            {/* SUBMIT BUTTON */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-[#00A3E0] hover:bg-[#0a8ebe] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg transition-all mt-4 flex items-center justify-center gap-2"
+            >
               {isSubmitting ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (isLogin ? "Sign In" : "Create Account")}
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  {isLogin ? "Signing in..." : "Creating account..."}
+                </>
+              ) : (
+                isLogin ? "Sign In" : "Create Account"
+              )}
             </button>
           </form>
 
+          {/* DIVIDER */}
           <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
-            <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-2 text-slate-400">Or continue with</span></div>
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-slate-100"></span>
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase">
+              <span className="bg-white px-2 text-slate-400">Or continue with</span>
+            </div>
           </div>
 
-          <button onClick={handleGoogleSignIn} type="button" className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 py-2.5 rounded-xl hover:bg-slate-50 transition-all font-semibold text-slate-700">
+          {/* GOOGLE BUTTON */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 py-2.5 rounded-xl transition-all font-semibold text-slate-700"
+          >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -284,15 +322,20 @@ export default function AuthPage() {
             Google
           </button>
 
+          {/* TOGGLE */}
           <p className="mt-4 text-center text-slate-500 text-sm">
             {isLogin ? "Don't have an account?" : "Already have an account?"}
-            <button onClick={toggleAuthMode} className="ml-2 text-[#00A3E0] font-bold underline">
+            <button
+              type="button"
+              onClick={toggleAuthMode}
+              className="ml-2 text-[#00A3E0] font-bold underline hover:no-underline"
+            >
               {isLogin ? "Sign up" : "Log in"}
             </button>
           </p>
         </div>
 
-        {/* --- DECORATIVE PANEL WITH IMAGE BACKGROUND --- */}
+        {/* DECORATIVE PANEL */}
         <div
           className={`hidden md:flex absolute top-0 left-0 w-1/2 h-full transition-transform duration-700 ease-in-out z-20 flex-col items-center justify-center text-white px-12 text-center ${
             isLogin ? "translate-x-full" : "translate-x-0"
@@ -307,7 +350,7 @@ export default function AuthPage() {
           <div className="absolute inset-0 bg-[#00A3E0]/80 mix-blend-multiply z-0"></div>
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[1px] z-0"></div>
 
-          {/* Glowing accent orb */}
+          {/* Glowing accent */}
           <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl z-0"></div>
 
           <div className="relative z-10 space-y-8">
@@ -316,13 +359,16 @@ export default function AuthPage() {
             </h2>
             <div className="space-y-4 text-white/90">
               <p className="flex items-center gap-3 justify-center">
-                <CheckCircle2 size={18} className="text-emerald-400" /> Streamlined Appointment Scheduling
+                <CheckCircle2 size={18} className="text-emerald-400" />
+                Streamlined Appointment Scheduling
               </p>
               <p className="flex items-center gap-3 justify-center">
-                <CheckCircle2 size={18} className="text-emerald-400" /> Direct Doctor-Patient Messaging
+                <CheckCircle2 size={18} className="text-emerald-400" />
+                Direct Doctor-Patient Messaging
               </p>
               <p className="flex items-center gap-3 justify-center">
-                <CheckCircle2 size={18} className="text-emerald-400" /> Digital Prescriptions & Records
+                <CheckCircle2 size={18} className="text-emerald-400" />
+                Digital Prescriptions & Records
               </p>
             </div>
             <button
@@ -330,7 +376,8 @@ export default function AuthPage() {
               onClick={toggleAuthMode}
               className="mt-8 px-10 py-3 border-2 border-white/30 bg-white/10 backdrop-blur-md rounded-full font-bold hover:bg-white hover:text-[#00A3E0] transition-all flex items-center gap-2 mx-auto"
             >
-              {isLogin ? "SIGN UP NOW" : "SIGN IN TO ACCOUNT"} <ArrowRight size={18} />
+              {isLogin ? "SIGN UP NOW" : "SIGN IN TO ACCOUNT"}
+              <ArrowRight size={18} />
             </button>
           </div>
         </div>

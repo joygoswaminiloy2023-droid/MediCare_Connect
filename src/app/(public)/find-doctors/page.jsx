@@ -49,6 +49,22 @@ function buildQuery({ search, specialization, minRating, maxFee, page, limit }) 
   return params.toString();
 }
 
+// ── Shared rating badge helper ──────────────────────────────────────────
+// doc.rating is null when a doctor has zero reviews (see backend $lookup
+// against the "Reviews" collection). We must NOT use `doc.rating || "4.9"`
+// because that falls back even when rating is legitimately 0, and it also
+// fabricates a 4.9 score for brand-new doctors with no reviews at all.
+function getRatingDisplay(doc) {
+  const hasRating = typeof doc.rating === "number" && doc.rating !== null;
+  return {
+    hasRating,
+    // Fall back to a fixed placeholder of 4.00 (with 0 reviews) when the
+    // doctor has no real reviews yet, instead of a "New" badge.
+    rating: hasRating ? doc.rating.toFixed(2) : "4.00",
+    reviewCount: hasRating ? (doc.reviews || 0) : 0,
+  };
+}
+
 function SkeletonGrid() {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
@@ -86,6 +102,7 @@ function GridCard({ doc, onBookClick }) {
 
   const feeUSD = doc.consultationFee || doc.fee || 50;
   const feeBDT = convertToBDT(feeUSD);
+  const { rating, reviewCount } = getRatingDisplay(doc);
 
   return (
     <motion.div variants={cardVariants} layout
@@ -105,8 +122,8 @@ function GridCard({ doc, onBookClick }) {
           </div>
           <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md">
             <FaStar className="text-amber-400 text-xs" />
-            <span className="text-slate-800">{doc.rating || "4.9"}</span>
-            <span className="text-slate-400 font-medium text-[11px]">({doc.reviews || "120"})</span>
+            <span className="text-slate-800">{rating}</span>
+            <span className="text-slate-400 font-medium text-[11px]">({reviewCount})</span>
           </div>
         </div>
       </Link>
@@ -123,7 +140,7 @@ function GridCard({ doc, onBookClick }) {
           <FaHospital className="text-slate-300 text-[10px] flex-shrink-0" />
           <p className="text-[11px] text-slate-400 truncate">{doc.hospitalName || "Clinic"}</p>
         </div>
-        
+
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
           <div>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">Consultation</span>
@@ -143,7 +160,7 @@ function GridCard({ doc, onBookClick }) {
             Book Now <FaArrowRight className="text-[10px]" />
           </button>
         </div>
-        
+
         <div className="mt-2 pt-1.5 border-t border-slate-50/50">
           <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
             <FaArrowRight className="text-[8px]" />
@@ -163,6 +180,7 @@ function ListCard({ doc, onBookClick }) {
 
   const feeUSD = doc.consultationFee || doc.fee || 50;
   const feeBDT = convertToBDT(feeUSD);
+  const { rating, reviewCount } = getRatingDisplay(doc);
 
   return (
     <motion.div variants={cardVariants} layout
@@ -187,8 +205,8 @@ function ListCard({ doc, onBookClick }) {
           </div>
           <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg flex-shrink-0">
             <FaStar className="text-amber-400 text-[10px]" />
-            <span className="text-xs font-bold text-slate-700">{doc.rating || "4.9"}</span>
-            <span className="text-[10px] text-slate-400">({doc.reviews || "120"})</span>
+            <span className="text-xs font-bold text-slate-700">{rating}</span>
+            <span className="text-[10px] text-slate-400">({reviewCount})</span>
           </div>
         </div>
         <div className="flex items-center gap-3 mt-1.5 flex-wrap text-[11px] text-slate-400">
@@ -212,7 +230,7 @@ function ListCard({ doc, onBookClick }) {
           <span>1 USD = ৳110 BDT</span>
         </div>
       </div>
-      
+
       <div className="flex-shrink-0 flex flex-col items-end gap-2">
         <div className="text-right">
           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">Fee</span>
@@ -407,7 +425,8 @@ export default function FindDoctorsPage() {
         limit: PER_PAGE
       });
 
-      const res  = await fetch(`http://localhost:5000/api/doctors?${qs}`);
+      const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+      const res  = await fetch(`${BACKEND}/api/doctors?${qs}`);
       const data = await res.json();
 
       if (data.success) {
@@ -439,7 +458,7 @@ export default function FindDoctorsPage() {
   // ── Handle Book Now click with restriction check ──────────────────────
   const handleBookClick = async (doctorId) => {
     if (isChecking || redirecting) return;
-    
+
     if (!userEmail) {
       toast.warning(
         <div className="flex items-center gap-2">
@@ -452,7 +471,7 @@ export default function FindDoctorsPage() {
           toastId: "login-required"
         }
       );
-      
+
       setRedirecting(true);
       setTimeout(() => {
         window.location.href = "/Authentication_pages";
@@ -472,7 +491,7 @@ export default function FindDoctorsPage() {
           month: 'long',
           day: 'numeric'
         }) : "unknown date";
-        
+
         toast.error(
           <div className="flex items-center gap-2">
             <FaCalendarTimes className="text-red-500" />

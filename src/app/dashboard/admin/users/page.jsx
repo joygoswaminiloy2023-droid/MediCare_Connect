@@ -20,7 +20,6 @@ function RoleBadge({ role }) {
   const map = {
     doctor: { label: 'Doctor', icon: Stethoscope, classes: 'bg-teal-50 text-teal-600' },
     patient: { label: 'Patient', icon: UserIcon, classes: 'bg-sky-50 text-sky-600' },
-    admin: { label: 'Admin', icon: ShieldCheck, classes: 'bg-violet-50 text-violet-600' },
   };
   const conf = map[role] || map.patient;
   const Icon = conf.icon;
@@ -54,7 +53,11 @@ export default function AdminUsersPage() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/admin/users`);
       const data = await response.json();
-      setUsersList(Array.isArray(data) ? data : []);
+      // ✅ FILTER OUT ADMINS - ONLY SHOW PATIENTS & DOCTORS
+      const filtered = Array.isArray(data) 
+        ? data.filter(user => user.role !== 'admin')
+        : [];
+      setUsersList(filtered);
     } catch { toast.error('Failed to load users'); }
     finally { setIsLoading(false); }
   };
@@ -108,39 +111,48 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Manage System Users</h1>
+      <div>
+        <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Manage System Users</h1>
+        <p className="text-slate-500 text-sm mt-1">{usersList.length} patient{usersList.length !== 1 ? 's' : ''} & doctor{usersList.length !== 1 ? 's' : ''}</p>
+      </div>
       
       <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-visible">
-        <div className="overflow-x-auto overflow-y-visible">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-slate-400 uppercase font-bold text-[10px] tracking-widest border-b border-slate-50">
-                <th className="py-6 px-8">User Profile</th>
-                <th className="py-6 px-4">Role</th>
-                <th className="py-6 px-4">Last Login</th>
-                <th className="py-6 px-4">Status</th>
-                <th className="py-6 px-8 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {usersList.map((user) => (
-                <motion.tr key={user._id} whileHover={{ backgroundColor: "#fafafa" }} className="text-sm">
-                  <td className="py-5 px-8 flex items-center gap-4">
-                    <img src={user.image || "https://ui-avatars.com/api/?name=" + user.name} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
-                    <div>
-                      <p className="font-bold text-slate-900">{user.name}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{user.email}</p>
-                    </div>
-                  </td>
-                  <td className="py-5 px-4"><RoleBadge role={user.role} /></td>
-                  <td className="py-5 px-4 text-slate-500 font-mono text-[11px]">{formatDateTime(user.lastLogin)}</td>
-                  <td className="py-5 px-4"><StatusBadge status={user.status} restrictedUntil={user.restrictedUntil} /></td>
-                  <td className="py-5 px-8 text-right overflow-visible">{renderActions(user)}</td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {usersList.length === 0 ? (
+          <div className="h-64 flex items-center justify-center text-slate-400 font-bold">
+            No patients or doctors found
+          </div>
+        ) : (
+          <div className="overflow-x-auto overflow-y-visible">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-slate-400 uppercase font-bold text-[10px] tracking-widest border-b border-slate-50">
+                  <th className="py-6 px-8">User Profile</th>
+                  <th className="py-6 px-4">Role</th>
+                  <th className="py-6 px-4">Last Login</th>
+                  <th className="py-6 px-4">Status</th>
+                  <th className="py-6 px-8 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {usersList.map((user) => (
+                  <motion.tr key={user._id} whileHover={{ backgroundColor: "#fafafa" }} className="text-sm">
+                    <td className="py-5 px-8 flex items-center gap-4">
+                      <img src={user.image || "https://ui-avatars.com/api/?name=" + user.name} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" alt={user.name} />
+                      <div>
+                        <p className="font-bold text-slate-900">{user.name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{user.email}</p>
+                      </div>
+                    </td>
+                    <td className="py-5 px-4"><RoleBadge role={user.role} /></td>
+                    <td className="py-5 px-4 text-slate-500 font-mono text-[11px]">{formatDateTime(user.lastLogin)}</td>
+                    <td className="py-5 px-4"><StatusBadge status={user.status} restrictedUntil={user.restrictedUntil} /></td>
+                    <td className="py-5 px-8 text-right overflow-visible">{renderActions(user)}</td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
