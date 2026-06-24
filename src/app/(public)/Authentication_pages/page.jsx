@@ -189,26 +189,7 @@ export default function AuthPage() {
                   </div>
 
                   {/* Admin Option */}
-                  <div className="flex items-center justify-start pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setValue("role", "admin")}
-                      className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${
-                        currentRole === "admin" 
-                          ? "text-[#00A3E0] font-bold" 
-                          : "text-slate-400 hover:text-slate-600"
-                      }`}
-                    >
-                      <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${
-                        currentRole === "admin" ? "border-[#00A3E0]" : "border-slate-300"
-                      }`}>
-                        {currentRole === "admin" && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#00A3E0]" />
-                        )}
-                      </div>
-                      Register as System Admin
-                    </button>
-                  </div>
+                 
                 </div>
 
                 {/* NAME */}

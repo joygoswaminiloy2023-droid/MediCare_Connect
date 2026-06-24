@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Clock, Loader2, AlertCircle, CheckCircle, Globe } from 'lucide-react';
 import { authClient } from "@/lib/auth-client";
 import { toast } from 'react-toastify';
-import { FaCross } from 'react-icons/fa';
 
 const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
 
@@ -17,12 +16,11 @@ export default function DoctorSchedulePage() {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [liveSlots, setLiveSlots] = useState([]);
+  const [doctorProfile, setDoctorProfile] = useState(null);
 
-  // The doctor's REAL public availableSlots, as currently shown on the
-  // find-doctors listing & booking page. This is recomputed server-side
-  // from active DoctorSchedule entries every time one is added, toggled,
-  // or deleted below — so this panel always reflects what patients see.
-  const [liveSlots, setLiveSlots] = useState(null);
+  const { data: session, isPending } = authClient.useSession();
+  const doctorEmail = session?.user?.email;
 
   const [form, setForm] = useState({
     dayOfWeek: "Monday",
@@ -30,68 +28,96 @@ export default function DoctorSchedulePage() {
     endTime: "10:00 AM"
   });
 
-  const { data: session } = authClient.useSession();
-  const doctorEmail = session?.user?.email;
+  // Fetch all data
+  const fetchAllData = async () => {
+    if (!doctorEmail) {
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      await Promise.all([
+        fetchSchedules(),
+        fetchDoctorProfile()
+      ]);
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+      toast.error("Failed to load schedule data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch schedules
   const fetchSchedules = async () => {
     if (!doctorEmail) return;
     try {
-      const res = await fetch(`${BACKEND}/api/doctors/schedule/${doctorEmail}`);
+      const res = await fetch(`${BACKEND}/api/doctors/schedule/${encodeURIComponent(doctorEmail)}`);
       const data = await res.json();
       if (data.success) {
         setSchedules(data.schedules || []);
+      } else {
+        console.error("Failed to fetch schedules:", data.message);
       }
     } catch (err) {
       console.error("Failed to fetch schedules:", err);
     }
   };
 
-  // Fetch the doctor's current public profile so the "Live on your
-  // profile" panel has something to show before the first edit is made.
-  const fetchLiveSlots = async () => {
+  // Fetch doctor profile to get live slots
+  const fetchDoctorProfile = async () => {
     if (!doctorEmail) return;
     try {
-      const res = await fetch(`${BACKEND}/api/doctors/profile/${doctorEmail}`);
+      const res = await fetch(`${BACKEND}/api/doctors/profile/${encodeURIComponent(doctorEmail)}`);
       const data = await res.json();
       if (data.success) {
+        setDoctorProfile(data.profile);
         setLiveSlots(data.profile?.availableSlots || []);
       }
     } catch (err) {
-      console.error("Failed to fetch live slots:", err);
+      console.error("Failed to fetch doctor profile:", err);
     }
   };
 
   useEffect(() => {
-    if (!doctorEmail) return;
-    fetchSchedules();
-    fetchLiveSlots();
-    setLoading(false);
-  }, [doctorEmail]);
+    if (!doctorEmail && !isPending) {
+      setLoading(false);
+      return;
+    }
+    if (doctorEmail) {
+      fetchAllData();
+    }
+  }, [doctorEmail, isPending]);
 
   const handleAddSchedule = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
+    if (!doctorEmail) {
+      toast.error("Please login first");
+      return;
+    }
 
+    setSubmitting(true);
     try {
       const res = await fetch(`${BACKEND}/api/doctors/schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          doctorEmail,
+          doctorEmail: doctorEmail,
           ...form
         })
       });
 
       const data = await res.json();
       if (data.success) {
-        toast.success("Time slot added!");
+        toast.success("Time slot added successfully!");
         setForm({ dayOfWeek: "Monday", startTime: "09:00 AM", endTime: "10:00 AM" });
-        if (data.availableSlots) setLiveSlots(data.availableSlots);
-        // Refetch immediately
-        await fetchSchedules();
+        // Refresh data
+        await Promise.all([
+          fetchSchedules(),
+          fetchDoctorProfile()
+        ]);
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to add schedule");
       }
     } catch (err) {
       toast.error("Failed to add schedule");
@@ -112,10 +138,12 @@ export default function DoctorSchedulePage() {
       const data = await res.json();
       if (data.success) {
         toast.success("Schedule deleted!");
-        if (data.availableSlots) setLiveSlots(data.availableSlots);
-        await fetchSchedules();
+        await Promise.all([
+          fetchSchedules(),
+          fetchDoctorProfile()
+        ]);
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to delete schedule");
       }
     } catch (err) {
       toast.error("Failed to delete schedule");
@@ -133,9 +161,13 @@ export default function DoctorSchedulePage() {
 
       const data = await res.json();
       if (data.success) {
-        toast.success(schedule.isActive ? "Disabled " : "Enabled ");
-        if (data.availableSlots) setLiveSlots(data.availableSlots);
-        await fetchSchedules();
+        toast.success(schedule.isActive ? "Schedule disabled" : "Schedule enabled");
+        await Promise.all([
+          fetchSchedules(),
+          fetchDoctorProfile()
+        ]);
+      } else {
+        toast.error(data.message || "Failed to update schedule");
       }
     } catch (err) {
       toast.error("Failed to update schedule");
@@ -143,7 +175,12 @@ export default function DoctorSchedulePage() {
     }
   };
 
-  if (loading) {
+  // Group schedules by day for display
+  const getSchedulesByDay = (day) => {
+    return schedules.filter(s => s.dayOfWeek === day && s.isActive);
+  };
+
+  if (loading || isPending) {
     return (
       <div className="space-y-8 animate-pulse">
         <div className="h-24 bg-slate-100 rounded-3xl" />
@@ -155,24 +192,36 @@ export default function DoctorSchedulePage() {
     );
   }
 
+  if (!doctorEmail) {
+    return (
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center">
+        <AlertCircle size={48} className="text-slate-300 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-slate-700">Please Login</h2>
+        <p className="text-slate-500 mt-2">You need to be logged in as a doctor to manage schedules.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
         <h1 className="text-3xl font-black text-slate-900">Manage Practice Schedule</h1>
         <p className="text-sm text-slate-500 mt-2">Configure your operational consultation windows</p>
+        {doctorProfile && (
+          <p className="text-xs text-slate-400 mt-2">
+            Managing schedule for: <span className="font-bold text-slate-600">{doctorProfile.doctorName || doctorEmail}</span>
+          </p>
+        )}
       </div>
 
-      {/* Live-on-profile panel — proves the schedule below is actually
-          driving what patients see, instead of a static signup-time value */}
+      {/* Live-on-profile panel */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
         <h2 className="text-sm font-black text-slate-900 mb-3 flex items-center gap-2">
           <Globe size={16} className="text-[#00A3E0]" />
           Live on Your Public Profile
         </h2>
-        {liveSlots === null ? (
-          <p className="text-xs text-slate-400">Loading...</p>
-        ) : liveSlots.length === 0 ? (
+        {liveSlots.length === 0 ? (
           <p className="text-xs text-slate-400">
             No active time slots yet — patients won't see any bookable hours until you add one below.
           </p>
@@ -273,7 +322,7 @@ export default function DoctorSchedulePage() {
 
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {DAYS.map(day => {
-              const daySchedules = schedules.filter(s => s.dayOfWeek === day && s.isActive);
+              const daySchedules = getSchedulesByDay(day);
               return (
                 <div key={day} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all">
                   <div className="flex items-center justify-between">
@@ -303,7 +352,7 @@ export default function DoctorSchedulePage() {
       {/* All Schedules Table */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-          <h2 className="text-lg font-black text-slate-900"> All Schedules</h2>
+          <h2 className="text-lg font-black text-slate-900">All Schedules</h2>
           <p className="text-xs text-slate-500 mt-1">{schedules.length} time slot{schedules.length !== 1 ? 's' : ''} configured</p>
         </div>
 
@@ -339,7 +388,7 @@ export default function DoctorSchedulePage() {
                         {schedule.isActive ? (
                           <><CheckCircle size={10} /> Active</>
                         ) : (
-                          <><FaCross></FaCross> Inactive</>
+                          <><Clock size={10} /> Inactive</>
                         )}
                       </span>
                     </td>
