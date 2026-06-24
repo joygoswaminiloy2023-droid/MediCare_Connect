@@ -22,23 +22,27 @@ export default function PatientReviews() {
   const { data: session } = authClient.useSession();
   const patientEmail = session?.user?.email;
 
-  useEffect(() => {
-    if (!patientEmail) return;
+// Change your useEffect to this:
+useEffect(() => {
+  if (!patientEmail) return;
 
-    Promise.all([
-      fetch(`${BACKEND}/api/patients/reviews/${patientEmail}`).then(r => r.json()),
-      fetch(`${BACKEND}/api/patients/history/${patientEmail}`).then(r => r.json()),
-      fetch("/api/auth/get-session").then(r => r.json())
-    ])
-      .then(([revData, aptData, sessData]) => {
-        if (revData.success) setReviews(revData.reviews || []);
-        if (aptData.success) setAppointments(aptData.appointments || []);
-        const user = sessData?.user || sessData?.data?.user;
-        if (user?._id) setPatientId(user._id);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [patientEmail]);
+  Promise.all([
+    fetch(`${BACKEND}/api/patients/reviews/${patientEmail}`).then(r => r.json()),
+    fetch(`${BACKEND}/api/patients/history/${patientEmail}`).then(r => r.json()),
+    // CRITICAL FIX: Add ${BACKEND} here
+    fetch(`${BACKEND}/api/auth/get-session`).then(r => r.json()) 
+  ])
+  .then(([revData, aptData, sessData]) => {
+    if (revData.success) setReviews(revData.reviews || []);
+    if (aptData.success) setAppointments(aptData.appointments || []);
+    
+    // Check if session data exists correctly
+    const user = sessData?.user || sessData?.data?.user;
+    if (user?._id) setPatientId(user._id);
+  })
+  .catch(err => console.error("Fetch error:", err))
+  .finally(() => setLoading(false));
+}, [patientEmail]);
 
   // Get unreviewed doctors
   const reviewedDoctorIds = new Set(reviews.map(r => r.doctorId?.toString()));

@@ -8,7 +8,7 @@ import {
   FaShieldAlt, FaCreditCard, FaRegClock, FaRegCalendar,
   FaUserMd, FaEnvelope, FaPhone, FaMapMarkerAlt
 } from "react-icons/fa";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock, AlertCircle } from "lucide-react";
 
 const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
 console.log("BACKEND URL:", BACKEND);
@@ -18,8 +18,11 @@ export default function BookingPage({ params }) {
 
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [cancelled, setCancelled] = useState(false);
+  const [appointmentRequested, setAppointmentRequested] = useState(false);
+  const [pendingAppointmentId, setPendingAppointmentId] = useState(null);
   const [patientId, setPatientId] = useState(null);
 
   const [form, setForm] = useState({
@@ -68,10 +71,46 @@ export default function BookingPage({ params }) {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const handleSubmit = async (e) => {
+  const handleRequestAppointment = async (e) => {
     e.preventDefault();
     if (!form.timeSlot) return alert("Please select a time slot.");
-    setSubmitting(true);
+    setRequesting(true);
+
+    try {
+      const res = await fetch(`${BACKEND}/api/appointments/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doctorId: id,
+          doctorName: doctor.doctorName,
+          patientId,
+          patientEmail: form.patientEmail,
+          patientName: form.patientName,
+          date: form.date,
+          timeSlot: form.timeSlot,
+          problem: form.problem,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Request sent! Waiting for doctor approval...");
+        setAppointmentRequested(true);
+        setPendingAppointmentId(data.appointmentId);
+      } else {
+        alert(data.message || "Failed to request appointment.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error. Please try again.");
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const handlePayment = async (e) => {
+    e.preventDefault();
+    setPaying(true);
 
     try {
       const res = await fetch(`${BACKEND}/api/appointments/create-checkout`, {
@@ -80,12 +119,13 @@ export default function BookingPage({ params }) {
         body: JSON.stringify({
           doctorId: id,
           doctorName: doctor.doctorName,
-          consultationFee: doctor.consultationFee,
           patientId,
-          ...form,
+          patientEmail: form.patientEmail,
+          patientName: form.patientName,
           date: form.date,
           timeSlot: form.timeSlot,
           problem: form.problem,
+          consultationFee: doctor.consultationFee,
         }),
       });
 
@@ -99,7 +139,7 @@ export default function BookingPage({ params }) {
       console.error(err);
       alert("Network error. Please try again.");
     } finally {
-      setSubmitting(false);
+      setPaying(false);
     }
   };
 
@@ -112,9 +152,6 @@ export default function BookingPage({ params }) {
             <Loader2 className="animate-spin text-blue-600 mx-auto mb-4" size={48} />
           </div>
           <p className="text-slate-500 font-semibold text-sm">Loading doctor details...</p>
-          <div className="w-48 h-1 bg-slate-200 rounded-full mx-auto mt-3 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-[loading_1.5s_ease-in-out_infinite]"></div>
-          </div>
         </div>
       </div>
     );
@@ -128,7 +165,6 @@ export default function BookingPage({ params }) {
             <FaUserMd className="text-red-400 text-3xl" />
           </div>
           <p className="text-slate-700 font-bold text-lg">Doctor not found</p>
-          <p className="text-slate-400 text-sm mt-1">The doctor you're looking for doesn't exist or has been removed.</p>
           <a href="/find-doctors" 
              className="inline-flex items-center gap-2 mt-6 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors">
             <FaArrowLeft className="text-xs" /> Back to Find Doctors
@@ -260,7 +296,7 @@ export default function BookingPage({ params }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }} 
           className="lg:col-span-3">
-          <form onSubmit={handleSubmit}
+          <form onSubmit={appointmentRequested ? handlePayment : handleRequestAppointment}
             className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 p-8 space-y-6">
 
             <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
@@ -280,8 +316,9 @@ export default function BookingPage({ params }) {
               </label>
               <input type="text" required value={form.patientName}
                 onChange={e => setForm({ ...form, patientName: e.target.value })}
+                disabled={appointmentRequested}
                 placeholder="John Doe"
-                className="w-full px-4 py-3.5 bg-slate-50/80 border-2 border-slate-100 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:shadow-lg focus:shadow-blue-100/50 transition-all duration-300" />
+                className="w-full px-4 py-3.5 bg-slate-50/80 border-2 border-slate-100 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:shadow-lg focus:shadow-blue-100/50 transition-all duration-300 disabled:bg-slate-100 disabled:cursor-not-allowed" />
             </div>
 
             {/* Email */}
@@ -291,8 +328,9 @@ export default function BookingPage({ params }) {
               </label>
               <input type="email" required value={form.patientEmail}
                 onChange={e => setForm({ ...form, patientEmail: e.target.value })}
+                disabled={appointmentRequested}
                 placeholder="john@email.com"
-                className="w-full px-4 py-3.5 bg-slate-50/80 border-2 border-slate-100 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:shadow-lg focus:shadow-blue-100/50 transition-all duration-300" />
+                className="w-full px-4 py-3.5 bg-slate-50/80 border-2 border-slate-100 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:shadow-lg focus:shadow-blue-100/50 transition-all duration-300 disabled:bg-slate-100 disabled:cursor-not-allowed" />
             </div>
 
             {/* Date */}
@@ -302,7 +340,8 @@ export default function BookingPage({ params }) {
               </label>
               <input type="date" required min={today} value={form.date}
                 onChange={e => setForm({ ...form, date: e.target.value })}
-                className="w-full px-4 py-3.5 bg-slate-50/80 border-2 border-slate-100 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:shadow-lg focus:shadow-blue-100/50 transition-all duration-300" />
+                disabled={appointmentRequested}
+                className="w-full px-4 py-3.5 bg-slate-50/80 border-2 border-slate-100 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:shadow-lg focus:shadow-blue-100/50 transition-all duration-300 disabled:bg-slate-100 disabled:cursor-not-allowed" />
             </div>
 
             {/* Time Slot */}
@@ -315,13 +354,14 @@ export default function BookingPage({ params }) {
                   <motion.button
                     key={slot}
                     type="button"
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
+                    disabled={appointmentRequested}
+                    whileHover={{ scale: appointmentRequested ? 1 : 1.03 }}
+                    whileTap={{ scale: appointmentRequested ? 1 : 0.97 }}
                     onClick={() => setForm({ ...form, timeSlot: slot })}
                     className={`py-3.5 px-3 rounded-2xl text-sm font-bold border-2 transition-all duration-300 ${
                       form.timeSlot === slot
                         ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-blue-500 shadow-lg shadow-blue-500/30"
-                        : "bg-slate-50/80 text-slate-600 border-slate-100 hover:border-blue-300 hover:bg-white hover:shadow-lg hover:shadow-blue-100/30"
+                        : "bg-slate-50/80 text-slate-600 border-slate-100 hover:border-blue-300 hover:bg-white hover:shadow-lg hover:shadow-blue-100/30 disabled:bg-slate-100 disabled:cursor-not-allowed"
                     }`}>
                     {slot}
                   </motion.button>
@@ -341,8 +381,9 @@ export default function BookingPage({ params }) {
               </label>
               <textarea rows={4} required value={form.problem}
                 onChange={e => setForm({ ...form, problem: e.target.value })}
+                disabled={appointmentRequested}
                 placeholder="Briefly describe your symptoms or reason for visit..."
-                className="w-full px-4 py-3.5 bg-slate-50/80 border-2 border-slate-100 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:shadow-lg focus:shadow-blue-100/50 transition-all duration-300 resize-none" />
+                className="w-full px-4 py-3.5 bg-slate-50/80 border-2 border-slate-100 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:bg-white focus:shadow-lg focus:shadow-blue-100/50 transition-all duration-300 resize-none disabled:bg-slate-100 disabled:cursor-not-allowed" />
             </div>
 
             {/* Booking Summary */}
@@ -377,33 +418,52 @@ export default function BookingPage({ params }) {
               </motion.div>
             )}
 
-            {/* Submit */}
+            {/* Request Status */}
+            {appointmentRequested && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <FaCheckCircle className="text-emerald-600" size={20} />
+                  <p className="text-sm font-bold text-emerald-700">Request Sent Successfully!</p>
+                </div>
+                <p className="text-xs text-emerald-600">Your appointment request has been sent to the doctor. Once approved, you can proceed to payment.</p>
+              </motion.div>
+            )}
+
+            {/* Submit Button */}
             <motion.button 
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={submitting || !form.timeSlot}
+              disabled={(!form.timeSlot && !appointmentRequested) || requesting || paying}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm py-4 rounded-2xl shadow-xl shadow-blue-500/30 transition-all duration-300 flex items-center justify-center gap-3">
-              {submitting
-                ? <><Loader2 size={18} className="animate-spin" /> Redirecting to Payment...</>
-                : <><FaLock className="text-xs" /> Proceed to Payment — ${doctor.consultationFee}</>
-              }
+              {requesting ? (
+                <><Loader2 size={18} className="animate-spin" /> Sending Request...</>
+              ) : paying ? (
+                <><Loader2 size={18} className="animate-spin" /> Redirecting to Payment...</>
+              ) : appointmentRequested ? (
+                <><FaCreditCard className="text-sm" /> Proceed to Payment — ${doctor.consultationFee}</>
+              ) : (
+                <><Clock size={18} /> Request Appointment</>
+              )}
             </motion.button>
 
             <div className="flex items-center justify-center gap-6 text-[11px] text-slate-400">
               <div className="flex items-center gap-1.5">
                 <FaLock className="text-emerald-500 text-[10px]" />
-                Secure Payment
+                Secure Booking
               </div>
               <div className="w-px h-4 bg-slate-200"></div>
               <div className="flex items-center gap-1.5">
                 <FaShieldAlt className="text-blue-500 text-[10px]" />
-                SSL Encrypted
+                Doctor Approval
               </div>
               <div className="w-px h-4 bg-slate-200"></div>
               <div className="flex items-center gap-1.5">
                 <FaCreditCard className="text-purple-500 text-[10px]" />
-                Stripe Powered
+                Stripe Payment
               </div>
             </div>
           </form>
