@@ -3,6 +3,7 @@ import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { FaStar, FaCheckCircle, FaStethoscope, FaArrowRight, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 // ── Animation Variants ────────────────────────────────────────────────────────
 const sectionVariants = {
@@ -66,6 +67,7 @@ function DoctorCard({ doc }) {
       className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden cursor-pointer"
     >
       {/* Image Layer */}
+      <Link href={`/appointments/book/${doc._id || doc.id}`}>
       <div className="relative h-64 w-full bg-slate-100 overflow-hidden">
         <motion.div
           className="w-full h-full"
@@ -96,11 +98,13 @@ function DoctorCard({ doc }) {
             transition={{ delay: 0.2 }}
             className="absolute top-3 right-3 bg-emerald-500 text-white flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow"
           >
+            
             <FaCheckCircle className="text-[10px]" /> Verified
           </motion.div>
         )}
 
         {/* Rating Badge */}
+        
         <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm text-slate-800 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md">
           <FaStar className="text-amber-400 text-xs" />
           <span>{doc.rating || "4.9"}</span>
@@ -111,14 +115,12 @@ function DoctorCard({ doc }) {
         <motion.div
           className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         >
-          <a
-            href={`/appointments/book/${doc._id || doc.id}`}
-            className="bg-[#00A3E0] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow flex items-center gap-1 hover:bg-[#0082b3] transition-colors"
-          >
-            Book <FaArrowRight className="text-[9px]" />
-          </a>
+          
+          
+          
         </motion.div>
       </div>
+      </Link>
 
       {/* Content Layer */}
       <div className="p-5 flex flex-col justify-between flex-grow">
@@ -157,12 +159,12 @@ function DoctorCard({ doc }) {
             </span>
           </div>
 
-          <a
+          <Link
             href={`/appointments/book/${doc._id || doc.id}`}
             className="bg-[#00A3E0] hover:bg-[#0082b3] active:scale-95 text-white font-bold text-xs tracking-wide px-5 py-2.5 rounded-xl shadow-sm transition-all duration-200 flex items-center gap-1.5"
           >
             Book Now <FaArrowRight className="text-[10px]" />
-          </a>
+          </Link>
         </div>
       </div>
     </motion.div>

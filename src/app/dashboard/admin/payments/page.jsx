@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { DollarSign } from 'lucide-react';
+import { DollarSign, User, Stethoscope, ShieldCheck, Loader2 } from 'lucide-react';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
 
@@ -19,10 +19,11 @@ export default function AdminPaymentsPage() {
       const response = await fetch(`${BACKEND_URL}/api/admin/payments`);
       if (!response.ok) throw new Error(`Server returned HTTP ${response.status}`);
       const data = await response.json();
+      // Debugging: View the data structure in your Browser Console (F12)
+      console.log('API Response Data:', data);
       setPaymentsList(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Fetch failure context execution on tab payments:', error);
-      toast.error('Failed to retrieve live logs for payments');
+      toast.error('Failed to retrieve secure transaction logs');
     } finally {
       setIsLoading(false);
     }
@@ -31,44 +32,66 @@ export default function AdminPaymentsPage() {
   if (isLoading) {
     return (
       <div className="w-full h-96 flex flex-col items-center justify-center gap-3">
-        <div className="w-8 h-8 border-4 border-[#00A3E0] border-t-transparent rounded-full animate-spin" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Syncing Matrix Core Engine...</span>
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Syncing Ledger...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div>
-        <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Financial Clearing Matrix</h1>
-        <p className="text-xs text-slate-500 font-medium">Verify payment gateways transactions tokens and captured volume parameters.</p>
-      </div>
-      {paymentsList.length === 0 ? (
-        <div className="bg-white rounded-2xl border p-12 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">No processed gateway transaction entries recorded.</div>
-      ) : (
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-900 text-white uppercase font-bold text-[10px] tracking-wider">
-                  <th className="py-4 px-6">Gateway Transaction Token</th>
-                  <th className="py-4 px-6">Account Holder Reference</th>
-                  <th className="py-4 px-6 text-right">Settled Gross Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                {paymentsList.map((pay) => (
-                  <tr key={pay._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4 px-6 font-mono text-[11px] text-indigo-600 font-bold">{pay.transactionId || pay.txID || "TXN_MOCK_VAL"}</td>
-                    <td className="py-4 px-6 text-slate-500">{pay.patientId || pay.userEmail || "System Guest"}</td>
-                    <td className="py-4 px-6 font-black text-slate-900 text-right flex items-center justify-end gap-0.5"><DollarSign size={12}/>{pay.amount} BDT</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+    <div className="max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-end border-b pb-6">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Financial Clearing Matrix</h1>
+          <p className="text-sm text-slate-500">Real-time audit of patient-doctor payment settlement protocols.</p>
         </div>
-      )}
+        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+          <ShieldCheck size={16} className="text-emerald-600" />
+          <span className="text-[10px] font-bold text-emerald-700 uppercase">Secure Ledger Active</span>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50">
+            <tr className="text-slate-400 text-[10px] uppercase tracking-widest">
+              <th className="py-5 px-6">Transaction Token</th>
+              <th className="py-5 px-6">Patient Name</th>
+              <th className="py-5 px-6">Attending Doctor</th>
+              <th className="py-5 px-6 text-right">Settled Amount</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {paymentsList.map((pay) => (
+              <tr key={pay._id} className="hover:bg-slate-50/80 transition-colors">
+                <td className="py-5 px-6 font-mono text-[11px] font-bold text-indigo-600 tracking-tight">
+                  {pay.transactionId || pay.txID || "N/A"}
+                </td>
+                <td className="py-5 px-6">
+                  <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
+                    <User size={14} className="text-slate-400" />
+                    {/* Checking for name property in nested object or direct property */}
+                    {pay.patientName || pay.patientId?.name || "Anonymous Patient"}
+                  </div>
+                </td>
+                <td className="py-5 px-6">
+                  <div className="flex items-center gap-2 text-slate-600 text-sm">
+                    <Stethoscope size={14} className="text-slate-400" />
+                    {/* Checking for name property in nested object or direct property */}
+                    {pay.doctorName || pay.doctorId?.name || "Unassigned"}
+                  </div>
+                </td>
+                <td className="py-5 px-6 text-right font-black text-slate-900">
+                  <div className="inline-flex items-center justify-end gap-0.5 px-3 py-1">
+                    <DollarSign size={12} />
+                    {pay.amount?.toLocaleString()} BDT
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
