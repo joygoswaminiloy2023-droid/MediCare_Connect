@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { MongoClient, ObjectId } from "mongodb";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 
 const client = new MongoClient(process.env.DATABASE_URL);
 const db = client.db("Medicare_connect");
@@ -12,6 +12,13 @@ function toObjectId(id) {
   } catch {
     return null;
   }
+}
+
+async function findUserById(userId) {
+  const oid = toObjectId(userId);
+  return db.collection("user").findOne({
+    $or: [{ _id: userId }, ...(oid ? [{ _id: oid }] : [])],
+  });
 }
 
 export const auth = betterAuth({
@@ -72,30 +79,45 @@ export const auth = betterAuth({
             }
           );
 
-          console.log("✅ User saved:", user.email, "Role:", user.role || "patient");
+          console.log("User saved:", user.email, "Role:", user.role || "patient");
         } catch (err) {
-          console.error("❌ Error saving user:", err);
+          console.error("Error saving user:", err);
         }
         return user;
       },
     },
-    session: {
-      create: {
-        before: async (session) => {
-          const oid = toObjectId(session.userId);
-          const dbUser = await db.collection("user").findOne({
-            $or: [{ _id: session.userId }, ...(oid ? [{ _id: oid }] : [])],
-          });
+    // NOTE: the banned-account check used to live here as a
+    // session.create.before throw. That breaks the Google OAuth
+    // redirect flow — better-auth returns the raw APIError as JSON
+    // instead of redirecting to errorCallbackURL. Moved to hooks.after
+    // below so we can control the redirect ourselves.
+  },
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      const newSession = ctx.context.newSession;
+      if (!newSession) return;
 
-          if (dbUser?.status === "banned") {
-            throw new APIError("FORBIDDEN", {
-              message: "Your account has been permanently banned.",
-            });
-          }
+      const dbUser = await findUserById(newSession.user.id);
+      if (dbUser?.status !== "banned") return;
 
-          return { data: session };
-        },
-      },
-    },
+      // Kill the session we just created for the banned user
+      await ctx.context.internalAdapter.deleteSession(newSession.session.token);
+
+      const isOAuthCallback = ctx.path?.startsWith("/callback");
+
+      if (isOAuthCallback) {
+        // Full browser navigation (Google sign-in) — redirect back to
+        // the frontend so AuthPage's useEffect can show the toast.
+        const redirectURL = new URL("/Authentication_pages", ctx.context.baseURL);
+        redirectURL.searchParams.set("error", "banned");
+        throw ctx.redirect(redirectURL.toString());
+      }
+
+      // Email/password sign-in is a fetch() call — a plain APIError
+      // comes back as JSON that authClient.signIn.email can read.
+      throw new APIError("FORBIDDEN", {
+        message: "Your account has been permanently banned.",
+      });
+    }),
   },
 });

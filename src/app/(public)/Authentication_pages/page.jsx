@@ -43,23 +43,53 @@ export default function AuthPage() {
     reset({ name: "", email: "", password: "", image: "", role: "patient" });
   };
 
+  // Helper function to redirect based on role
+  const redirectBasedOnRole = async () => {
+    try {
+      // Get the current session to fetch user data
+      const { data: session } = await authClient.getSession();
+      
+      if (!session || !session.user) {
+        console.error("No session found");
+        router.push("/");
+        return;
+      }
+
+      const userRole = session.user.role || "patient";
+      console.log("User role:", userRole); // For debugging
+
+      // Redirect based on role
+      if (userRole === "admin") {
+        router.push("/dashboard/admin/analytics");
+      } else if (userRole === "doctor") {
+        router.push("/dashboard/doctor");
+      } else {
+        router.push("/");
+      }
+      router.refresh();
+    } catch (error) {
+      console.error("Error getting session:", error);
+      router.push("/");
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       const response = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/",
-        errorCallbackURL: "/?error=banned",
+        callbackURL: "/Authentication_pages",
+        errorCallbackURL: "/Authentication_pages?error=banned",
       });
 
       if (response?.error) {
         toast.error(response.error.message || "Google authentication failed.");
       } else {
         toast.success("Google sign-in successful!");
-
-        setTimeout(() => {
-          router.push("/");
-          router.refresh();
-        }, 1500);
+        
+        // Wait a moment for session to be established
+        setTimeout(async () => {
+          await redirectBasedOnRole();
+        }, 1000);
       }
     } catch (err) {
       console.error(err);
@@ -67,11 +97,8 @@ export default function AuthPage() {
     }
   };
 
-
-
   const onSubmit = async (data) => {
     try {
-
       if (!isLogin) {
         const strongPasswordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{6,}$/;
         if (!strongPasswordRegex.test(data.password)) {
@@ -82,40 +109,37 @@ export default function AuthPage() {
 
       const response = isLogin
         ? await authClient.signIn.email({
-          email: data.email,
-          password: data.password,
-          callbackURL: "/"
-        })
+            email: data.email,
+            password: data.password,
+            callbackURL: "/Authentication_pages"
+          })
         : await authClient.signUp.email({
-          name: data.name,
-          email: data.email,
-          password: data.password,
-          image: data.image,
-          role: data.role || "patient",
-          callbackURL: "/"
-        });
+            name: data.name,
+            email: data.email,
+            password: data.password,
+            image: data.image,
+            role: data.role || "patient",
+            callbackURL: "/Authentication_pages"
+          });
 
       if (response?.error || response?.data === null) {
         toast.error(response?.error?.message || "Authentication processing failed.");
       } else {
-        // 2. Trigger Success Toast
         toast.success(isLogin ? "Welcome back! Login Successful." : "Account Created Successfully!");
 
-        // 3. Clear data form inputs safely
+        // Clear form inputs
         reset();
 
-        // 4. Wait for the toast animation to display before redirecting
-        setTimeout(() => {
-          router.push("/");
-          router.refresh(); // Forces Next.js to re-evaluate active cookie tokens instantly
-        }, 1500);
+        // Wait a moment for session to be established
+        setTimeout(async () => {
+          await redirectBasedOnRole();
+        }, 1000);
       }
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong during data transmission.");
     }
   };
-
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-200 p-4 md:p-6 font-sans">
@@ -125,8 +149,9 @@ export default function AuthPage() {
 
         {/* --- FORM CONTAINER --- */}
         <div
-          className={`w-full md:w-1/2 h-full flex flex-col justify-center px-8 sm:px-16 py-10 transition-all duration-700 ease-in-out z-10 ${isLogin ? "md:translate-x-0" : "md:translate-x-full"
-            }`}
+          className={`w-full md:w-1/2 h-full flex flex-col justify-center px-8 sm:px-16 py-10 transition-all duration-700 ease-in-out z-10 ${
+            isLogin ? "md:translate-x-0" : "md:translate-x-full"
+          }`}
         >
           <div className="mb-4 mt-10">
             <div className="flex justify-center md:justify-start items-center gap-2 mb-2">
@@ -150,10 +175,11 @@ export default function AuthPage() {
                     <button
                       type="button"
                       onClick={() => setValue("role", "patient", { shouldValidate: true })}
-                      className={`flex items-center justify-center gap-2 p-3 border rounded-xl font-semibold text-xs transition-all ${currentRole === "patient"
-                        ? "border-[#00A3E0] bg-[#e6f6fc] text-[#00A3E0] shadow-sm"
-                        : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                        }`}
+                      className={`flex items-center justify-center gap-2 p-3 border rounded-xl font-semibold text-xs transition-all ${
+                        currentRole === "patient"
+                          ? "border-[#00A3E0] bg-[#e6f6fc] text-[#00A3E0] shadow-sm"
+                          : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      }`}
                     >
                       <User size={16} />
                       Patient
@@ -162,10 +188,11 @@ export default function AuthPage() {
                     <button
                       type="button"
                       onClick={() => setValue("role", "doctor", { shouldValidate: true })}
-                      className={`flex items-center justify-center gap-2 p-3 border rounded-xl font-semibold text-xs transition-all ${currentRole === "doctor"
-                        ? "border-[#00A3E0] bg-[#e6f6fc] text-[#00A3E0] shadow-sm"
-                        : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                        }`}
+                      className={`flex items-center justify-center gap-2 p-3 border rounded-xl font-semibold text-xs transition-all ${
+                        currentRole === "doctor"
+                          ? "border-[#00A3E0] bg-[#e6f6fc] text-[#00A3E0] shadow-sm"
+                          : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      }`}
                     >
                       <Stethoscope size={16} />
                       Doctor
@@ -177,10 +204,13 @@ export default function AuthPage() {
                     <button
                       type="button"
                       onClick={() => setValue("role", "admin", { shouldValidate: true })}
-                      className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${currentRole === "admin" ? "text-[#00A3E0] font-bold" : "text-slate-400 hover:text-slate-600"
-                        }`}
+                      className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${
+                        currentRole === "admin" ? "text-[#00A3E0] font-bold" : "text-slate-400 hover:text-slate-600"
+                      }`}
                     >
-                      <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${currentRole === "admin" ? "border-[#00A3E0]" : "border-slate-300"}`}>
+                      <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${
+                        currentRole === "admin" ? "border-[#00A3E0]" : "border-slate-300"
+                      }`}>
                         {currentRole === "admin" && <div className="w-1.5 h-1.5 rounded-full bg-[#00A3E0]" />}
                       </div>
                       Register as System Admin
@@ -264,8 +294,9 @@ export default function AuthPage() {
 
         {/* --- DECORATIVE PANEL WITH IMAGE BACKGROUND --- */}
         <div
-          className={`hidden md:flex absolute top-0 left-0 w-1/2 h-full transition-transform duration-700 ease-in-out z-20 flex-col items-center justify-center text-white px-12 text-center ${isLogin ? "translate-x-full" : "translate-x-0"
-            }`}
+          className={`hidden md:flex absolute top-0 left-0 w-1/2 h-full transition-transform duration-700 ease-in-out z-20 flex-col items-center justify-center text-white px-12 text-center ${
+            isLogin ? "translate-x-full" : "translate-x-0"
+          }`}
           style={{
             backgroundImage: `url('https://images.stockcake.com/public/c/1/1/c111abab-9193-4526-bd6f-36c2338ec6e9/doctor-analyzing-data-stockcake.jpg')`,
             backgroundSize: 'cover',
