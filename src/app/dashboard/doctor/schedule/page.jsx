@@ -1,209 +1,320 @@
 "use client";
-import React, { useState } from 'react';
-import { Plus, Trash2, CalendarRange, Clock, CalendarDays, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, Clock, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { authClient } from "@/lib/auth-client";
 import { toast } from 'react-toastify';
+import { FaCross } from 'react-icons/fa';
 
-export default function ManageScheduleWorkspace() {
-  const [schedule, setSchedule] = useState([
-    { id: "1", day: "Monday", timeSlot: "09:00 AM - 10:30 AM" },
-    { id: "2", day: "Wednesday", timeSlot: "02:00 PM - 03:30 PM" },
-    { id: "3", day: "Friday", timeSlot: "10:00 AM - 12:00 PM" }
-  ]);
-  const [newDay, setNewDay] = useState("Monday");
-  const [newTime, setNewTime] = useState("");
+const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
 
-  // Static Calendar Mock Generation Metadata for June 2026
-  const weekdaysLabel = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const daysInMonth = Array.from({ length: 30 }, (_, i) => i + 1);
-  const startOffsetBlankDays = Array.from({ length: 1 }); // June 2026 starts on a Monday
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const TIME_SLOTS = [
+  "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM", "05:00 PM"
+];
 
-  const handleAddSchedule = (e) => {
+export default function DoctorSchedulePage() {
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [form, setForm] = useState({
+    dayOfWeek: "Monday",
+    startTime: "09:00 AM",
+    endTime: "10:00 AM"
+  });
+
+  const { data: session } = authClient.useSession();
+  const doctorEmail = session?.user?.email;
+
+  // Fetch schedules
+  const fetchSchedules = async () => {
+    if (!doctorEmail) return;
+    try {
+      const res = await fetch(`${BACKEND}/api/doctors/schedule/${doctorEmail}`);
+      const data = await res.json();
+      if (data.success) {
+        setSchedules(data.schedules || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch schedules:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!doctorEmail) return;
+    fetchSchedules();
+    setLoading(false);
+  }, [doctorEmail]);
+
+  const handleAddSchedule = async (e) => {
     e.preventDefault();
-    if (!newTime) return toast.warning("Provide a time slot parameter boundary.");
-    const payload = { id: Date.now().toString(), day: newDay, timeSlot: newTime };
-    setSchedule([...schedule, payload]);
-    setNewTime("");
-    toast.success("Schedule allocation slot logged successfully.");
+    setSubmitting(true);
+
+    try {
+      const res = await fetch(`${BACKEND}/api/doctors/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doctorEmail,
+          ...form
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Time slot added!");
+        setForm({ dayOfWeek: "Monday", startTime: "09:00 AM", endTime: "10:00 AM" });
+        // Refetch immediately
+        await fetchSchedules();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error("Failed to add schedule");
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleRemoveSchedule = (id) => {
-    setSchedule(schedule.filter(item => item.id !== id));
-    toast.info("Schedule tracking block dropped cleanly.");
+  const handleDeleteSchedule = async (scheduleId) => {
+    if (!confirm("Delete this schedule?")) return;
+
+    try {
+      const res = await fetch(`${BACKEND}/api/doctors/schedule/${scheduleId}`, {
+        method: "DELETE"
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Schedule deleted!");
+        await fetchSchedules();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error("Failed to delete schedule");
+      console.error(err);
+    }
   };
 
-  // Helper function to check if a specific calendar cell maps to a chosen active workday string
-  const checkActiveDayHighlight = (dayNum) => {
-    // Basic structural day-mapping for mock visual presentation layout tracking
-    const dayMap = { 1: "Monday", 3: "Wednesday", 5: "Friday", 8: "Monday", 10: "Wednesday", 12: "Friday", 15: "Monday", 17: "Wednesday", 19: "Friday", 22: "Monday", 24: "Wednesday", 26: "Friday", 29: "Monday" };
-    return schedule.some(item => item.day === dayMap[dayNum]);
+  const handleToggleActive = async (schedule) => {
+    try {
+      const res = await fetch(`${BACKEND}/api/doctors/schedule/${schedule._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !schedule.isActive })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(schedule.isActive ? "Disabled " : "Enabled ");
+        await fetchSchedules();
+      }
+    } catch (err) {
+      toast.error("Failed to update schedule");
+      console.error(err);
+    }
   };
 
-  return (
-    <div className="w-full space-y-8 animate-fadeIn text-slate-800">
-      
-      {/* HEADER BLOCK */}
-      <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight text-slate-900">MANAGE PRACTICE SCHEDULE</h2>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Configure, allocate, or suspend operational consultation windows</p>
-        </div>
-        <div className="flex items-center gap-2 bg-blue-50/50 text-blue-600 px-4 py-2.5 rounded-2xl border border-blue-100 font-bold text-xs">
-          <CalendarDays size={16} /> June 2026 Ledger
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        <div className="h-24 bg-slate-100 rounded-3xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="h-96 bg-slate-100 rounded-3xl" />
+          <div className="h-96 bg-slate-100 rounded-3xl" />
         </div>
       </div>
+    );
+  }
 
-      {/* CORE INTERACTION SPACE GRID */}
-      <div className="w-full grid grid-cols-1 xl:grid-cols-3 gap-8">
-        
-        {/* LEFT COLUMN: CONTROL PANEL FORM */}
-        <div className="space-y-6 flex flex-col h-fit">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-5 flex items-center gap-2">
-              <CalendarRange size={14} className="text-[#00A3E0]" /> Create Allocation Block
-            </h3>
-            
-            <form onSubmit={handleAddSchedule} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-wider">Target Week Day</label>
-                <select 
-                  value={newDay} 
-                  onChange={(e) => setNewDay(e.target.value)} 
-                  className="w-full mt-1.5 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs outline-none focus:border-[#00A3E0] transition-colors appearance-none cursor-pointer"
-                >
-                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
+        <h1 className="text-3xl font-black text-slate-900">Manage Practice Schedule</h1>
+        <p className="text-sm text-slate-500 mt-2">Configure your operational consultation windows</p>
+      </div>
 
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-wider">Time Block Constraints</label>
-                <div className="relative mt-1.5">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                    <Clock size={14} />
-                  </span>
-                  <input 
-                    type="text" 
-                    placeholder="e.g., 09:00 AM - 11:00 AM" 
-                    value={newTime} 
-                    onChange={(e) => setNewTime(e.target.value)} 
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs outline-none focus:border-[#00A3E0] transition-colors placeholder:text-slate-400" 
-                  />
-                </div>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-              <button type="submit" className="w-full bg-[#00A3E0] hover:bg-[#0082b3] text-white font-black py-3.5 rounded-xl text-xs transition-all flex items-center justify-center gap-2 shadow-md shadow-[#00A3E0]/10 hover:shadow-lg mt-2">
-                <Plus size={14} strokeWidth={3} /> COMMIT TO TIMELINE
-              </button>
-            </form>
-          </div>
+        {/* Add Schedule Form */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
+          <h2 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
+            <Plus size={20} className="text-[#00A3E0]" />
+            Add Time Slot
+          </h2>
 
-          {/* QUICK PROMPT INFO INSIGHT */}
-          <div className="bg-slate-900 text-slate-400 p-5 rounded-3xl flex items-start gap-3">
-            <AlertCircle size={16} className="text-[#00A3E0] shrink-0 mt-0.5" />
-            <p className="text-[11px] font-medium leading-relaxed">
-              Allocated slots will auto-populate onto active public booking schedules for verified platform user entities.
+          <form onSubmit={handleAddSchedule} className="space-y-5">
+            {/* Day */}
+            <div>
+              <label className="text-xs font-bold text-slate-600 uppercase block mb-2">Select Day</label>
+              <select
+                value={form.dayOfWeek}
+                onChange={e => setForm({ ...form, dayOfWeek: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-2xl text-sm font-semibold focus:border-[#00A3E0] focus:outline-none"
+              >
+                {DAYS.map(day => (
+                  <option key={day} value={day}>{day}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Start Time */}
+            <div>
+              <label className="text-xs font-bold text-slate-600 uppercase block mb-2">Start Time</label>
+              <select
+                value={form.startTime}
+                onChange={e => setForm({ ...form, startTime: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-2xl text-sm font-semibold focus:border-[#00A3E0] focus:outline-none"
+              >
+                {TIME_SLOTS.map(time => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* End Time */}
+            <div>
+              <label className="text-xs font-bold text-slate-600 uppercase block mb-2">End Time</label>
+              <select
+                value={form.endTime}
+                onChange={e => setForm({ ...form, endTime: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-2xl text-sm font-semibold focus:border-[#00A3E0] focus:outline-none"
+              >
+                {TIME_SLOTS.map(time => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-[#00A3E0] hover:bg-[#0082b3] disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <><Loader2 size={16} className="animate-spin" /> Adding...</>
+              ) : (
+                <><Plus size={16} /> Add Time Slot</>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-2xl">
+            <p className="text-xs text-blue-800 font-semibold flex items-start gap-2">
+              <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+              <span>Active time slots will appear on patient booking page</span>
             </p>
           </div>
         </div>
 
-        {/* CENTER COLUMN: LIVE MONTHLY VIEW CALENDAR */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm h-fit flex flex-col">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <CalendarDays size={14} className="text-[#00A3E0]" /> Interactive Grid Overview
-              </h3>
-              <p className="text-[10px] font-medium text-slate-400 mt-0.5">Visual month index mapping active days</p>
-            </div>
-            <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-100">
-              <button type="button" className="p-1 text-slate-400 hover:text-slate-800 rounded-lg"><ChevronLeft size={14} /></button>
-              <span className="text-[10px] font-black uppercase px-1 text-slate-700">June 2026</span>
-              <button type="button" className="p-1 text-slate-400 hover:text-slate-800 rounded-lg"><ChevronRight size={14} /></button>
-            </div>
-          </div>
+        {/* Calendar View */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
+          <h2 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
+            <Clock size={20} className="text-[#00A3E0]" />
+            Active Hours Registry
+          </h2>
 
-          {/* CALENDAR VIEW GRID CANVAS */}
-          <div className="w-full grid grid-cols-7 gap-1 text-center border-t border-slate-100 pt-4">
-            {weekdaysLabel.map((day) => (
-              <div key={day} className="text-[10px] font-black tracking-wider text-slate-400 uppercase py-1.5">{day}</div>
-            ))}
-            
-            {startOffsetBlankDays.map((_, idx) => (
-              <div key={`blank-${idx}`} className="p-2 bg-slate-50/30 rounded-xl" />
-            ))}
-
-            {daysInMonth.map((dayNum) => {
-              const isSlotActive = checkActiveDayHighlight(dayNum);
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {DAYS.map(day => {
+              const daySchedules = schedules.filter(s => s.dayOfWeek === day && s.isActive);
               return (
-                <div 
-                  key={dayNum} 
-                  className={`p-2.5 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center relative cursor-default group ${
-                    isSlotActive 
-                      ? 'bg-blue-50 text-[#00A3E0] font-black border border-blue-100 shadow-sm' 
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <span>{dayNum}</span>
-                  {isSlotActive && (
-                    <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#00A3E0] animate-pulse" />
-                  )}
+                <div key={day} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-slate-600 uppercase mb-2">{day}</p>
+                      {daySchedules.length > 0 ? (
+                        <div className="space-y-2">
+                          {daySchedules.map((sch, i) => (
+                            <div key={i} className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full text-[10px] font-bold">
+                              <CheckCircle size={10} />
+                              {sch.startTime} - {sch.endTime}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400">No active slots</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
+        </div>
+      </div>
 
-          {/* CALENDAR METADATA FOOTER */}
-          <div className="mt-5 pt-4 border-t border-slate-100 flex items-center gap-4 text-[10px] font-bold text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-md bg-blue-50 border border-blue-100" /> Active Roster Day
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-md bg-slate-50" /> Off-duty
-            </div>
-          </div>
+      {/* All Schedules Table */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+          <h2 className="text-lg font-black text-slate-900"> All Schedules</h2>
+          <p className="text-xs text-slate-500 mt-1">{schedules.length} time slot{schedules.length !== 1 ? 's' : ''} configured</p>
         </div>
 
-        {/* RIGHT COLUMN: ACTIVE HOURS REGISTRY LIST */}
-        <div className="space-y-3 flex flex-col">
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Active Hours Registry</h3>
-            <p className="text-[10px] font-medium text-slate-400 mt-0.5">Live roster blocks sequence logs</p>
+        {schedules.length === 0 ? (
+          <div className="p-12 text-center">
+            <AlertCircle className="text-slate-300 mx-auto mb-3" size={40} />
+            <p className="text-slate-400 font-bold">No schedules yet. Create one to get started!</p>
           </div>
-
-          {schedule.length === 0 ? (
-            <div className="p-8 border border-dashed border-slate-200 bg-white rounded-3xl text-center text-xs font-medium text-slate-400 flex flex-col items-center justify-center gap-2">
-              <Clock size={20} className="text-slate-300 animate-spin" />
-              <span>No active operational schedule found.</span>
-            </div>
-          ) : (
-            <div className="space-y-2.5 overflow-y-auto max-h-[400px] pr-1">
-              {schedule.map((item) => (
-                <div key={item.id} className="bg-white border border-slate-200/80 p-4 rounded-2xl flex items-center justify-between shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-200 group">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-2.5 rounded-xl font-black text-[10px] tracking-wider uppercase w-20 text-center shadow-sm">
-                      {item.day.substring(0, 3)}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.day}</span>
-                      <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs mt-0.5">
-                        <Clock size={12} className="text-[#00A3E0]" /> {item.timeSlot}
-                      </div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => handleRemoveSchedule(item.id)} 
-                    className="text-slate-400 hover:text-rose-600 p-2.5 rounded-xl hover:bg-rose-50 opacity-100 xl:opacity-0 group-hover:opacity-100 transition-all duration-200"
-                    title="Drop Allocation Block"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 text-xs font-black text-slate-500 uppercase border-b border-slate-100">
+                  <th className="px-6 py-4">Day</th>
+                  <th className="px-6 py-4">Time</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {schedules.map(schedule => (
+                  <tr key={schedule._id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-800">{schedule.dayOfWeek}</td>
+                    <td className="px-6 py-4 text-sm text-slate-700 font-semibold">
+                      {schedule.startTime} - {schedule.endTime}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase ${
+                        schedule.isActive
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-slate-100 text-slate-600 border border-slate-200"
+                      }`}>
+                        {schedule.isActive ? (
+                          <><CheckCircle size={10} /> Active</>
+                        ) : (
+                          <><FaCross></FaCross> Inactive</>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleToggleActive(schedule)}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
+                          schedule.isActive
+                            ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                        }`}
+                      >
+                        {schedule.isActive ? "Disable" : "Enable"}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSchedule(schedule._id)}
+                        className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                      >
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

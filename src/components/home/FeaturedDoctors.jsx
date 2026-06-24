@@ -5,6 +5,12 @@ import { FaStar, FaCheckCircle, FaStethoscope, FaArrowRight, FaChevronLeft, FaCh
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
+// ── Currency Conversion ──────────────────────────────────────────────────
+const convertToBDT = (usdAmount) => {
+  const conversionRate = 110; // 1 USD = 110 BDT
+  return (usdAmount * conversionRate).toFixed(2);
+};
+
 // ── Animation Variants ────────────────────────────────────────────────────────
 const sectionVariants = {
   hidden: { opacity: 0, y: 40 },
@@ -60,6 +66,10 @@ function DoctorCard({ doc }) {
   const doctorImg = (!imgError && (doc.image || doc.profileImage))
     || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=600";
 
+  // Get fee in USD (fallback to 50 if not provided)
+  const feeUSD = doc.consultationFee || doc.fee || 50;
+  const feeBDT = convertToBDT(feeUSD);
+
   return (
     <motion.div
       variants={cardVariants}
@@ -68,58 +78,47 @@ function DoctorCard({ doc }) {
     >
       {/* Image Layer */}
       <Link href={`/appointments/book/${doc._id || doc.id}`}>
-      <div className="relative h-64 w-full bg-slate-100 overflow-hidden">
-        <motion.div
-          className="w-full h-full"
-          whileHover={{ scale: 1.05 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-        >
-          <Image
-            src={doctorImg}
-            alt={doc.doctorName || doc.name || "Doctor"}
-            width={400}
-            height={400}
-            unoptimized
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover object-top"
-          />
-        </motion.div>
-
-        {/* Dark gradient overlay on hover */}
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        />
-
-        {/* Verified Badge */}
-        {doc.verificationStatus === 'verified' && (
+        <div className="relative h-64 w-full bg-slate-100 overflow-hidden">
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="absolute top-3 right-3 bg-emerald-500 text-white flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow"
+            className="w-full h-full"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
           >
-            
-            <FaCheckCircle className="text-[10px]" /> Verified
+            <Image
+              src={doctorImg}
+              alt={doc.doctorName || doc.name || "Doctor"}
+              width={400}
+              height={400}
+              unoptimized
+              onError={() => setImgError(true)}
+              className="w-full h-full object-cover object-top"
+            />
           </motion.div>
-        )}
 
-        {/* Rating Badge */}
-        
-        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm text-slate-800 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md">
-          <FaStar className="text-amber-400 text-xs" />
-          <span>{doc.rating || "4.9"}</span>
-          <span className="text-slate-400 font-medium text-[11px]">({doc.reviews || "120"})</span>
+          {/* Dark gradient overlay on hover */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          />
+
+          {/* Verified Badge */}
+          {doc.verificationStatus === 'verified' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="absolute top-3 right-3 bg-emerald-500 text-white flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow"
+            >
+              <FaCheckCircle className="text-[10px]" /> Verified
+            </motion.div>
+          )}
+
+          {/* Rating Badge */}
+          <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm text-slate-800 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md">
+            <FaStar className="text-amber-400 text-xs" />
+            <span>{doc.rating || "4.9"}</span>
+            <span className="text-slate-400 font-medium text-[11px]">({doc.reviews || "120"})</span>
+          </div>
         </div>
-
-        {/* Hover: Book Now overlay button */}
-        <motion.div
-          className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        >
-          
-          
-          
-        </motion.div>
-      </div>
       </Link>
 
       {/* Content Layer */}
@@ -147,16 +146,20 @@ function DoctorCard({ doc }) {
           </div>
         </div>
 
-        {/* Bottom Action Bar */}
+        {/* Bottom Action Bar - Updated with Both Currencies */}
         <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-50">
           <div>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block leading-none mb-1">
-              Consultation
+              Consultation Fee
             </span>
-            <span className="text-lg font-extrabold text-slate-900">
-              {doc.consultationFee || doc.fee || "500"}{" "}
-              <span className="text-sm font-semibold text-slate-400">BDT</span>
-            </span>
+            <div className="space-y-0.5">
+              <span className="text-lg font-extrabold text-slate-900">
+                ${feeUSD} <span className="text-sm font-semibold text-slate-400">USD</span>
+              </span>
+              <div className="text-sm font-bold text-slate-600">
+                ৳{feeBDT} <span className="text-xs font-semibold text-slate-400">BDT</span>
+              </div>
+            </div>
           </div>
 
           <Link
@@ -165,6 +168,14 @@ function DoctorCard({ doc }) {
           >
             Book Now <FaArrowRight className="text-[10px]" />
           </Link>
+        </div>
+
+        {/* Exchange Rate Indicator */}
+        <div className="mt-2 pt-2 border-t border-slate-50/50">
+          <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
+            <span>💱</span>
+            <span>1 USD = ৳110 BDT</span>
+          </div>
         </div>
       </div>
     </motion.div>

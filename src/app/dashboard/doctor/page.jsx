@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Users, Calendar, Star, TrendingUp, ArrowUpRight, Activity, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Users, Calendar, Star, TrendingUp, ArrowUpRight, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { authClient } from "@/lib/auth-client";
+import { toast } from 'react-toastify';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
   Tooltip, CartesianGrid, BarChart, Bar, Cell
@@ -19,7 +20,9 @@ const STATUS_STYLES = {
 export default function DoctorDashboardOverview() {
   const [stats, setStats]                   = useState(null);
   const [recentAppointments, setRecent]     = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading]               = useState(true);
+  const [processingId, setProcessingId]     = useState(null);
 
   const { data: session } = authClient.useSession();
   const doctorEmail       = session?.user?.email;
@@ -27,17 +30,74 @@ export default function DoctorDashboardOverview() {
   useEffect(() => {
     if (!doctorEmail) return;
 
-    fetch(`${BACKEND}/api/doctors/dashboard-stats/${doctorEmail}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          setStats(data.stats);
-          setRecent(data.recentAppointments || []);
+    Promise.all([
+      fetch(`${BACKEND}/api/doctors/dashboard-stats/${doctorEmail}`)
+        .then(r => r.json()),
+      fetch(`${BACKEND}/api/appointments/pending/${doctorEmail}`)
+        .then(r => r.json())
+    ])
+      .then(([statsData, pendingData]) => {
+        if (statsData.success) {
+          setStats(statsData.stats);
+          setRecent(statsData.recentAppointments || []);
+        }
+        if (pendingData.success) {
+          setPendingRequests(pendingData.appointments || []);
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [doctorEmail]);
+
+  const handleAccept = async (appointmentId) => {
+    setProcessingId(appointmentId);
+    try {
+      const res = await fetch(`${BACKEND}/api/appointments/request/${appointmentId}/accept`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Appointment accepted!");
+        setPendingRequests(prev => prev.filter(p => p._id !== appointmentId));
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error("Failed to accept appointment");
+      console.error(err);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (appointmentId) => {
+    const reason = prompt("Enter rejection reason (optional):");
+    if (reason === null) return;
+
+    setProcessingId(appointmentId);
+    try {
+      const res = await fetch(`${BACKEND}/api/appointments/request/${appointmentId}/reject`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Appointment rejected!");
+        setPendingRequests(prev => prev.filter(p => p._id !== appointmentId));
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      toast.error("Failed to reject appointment");
+      console.error(err);
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   // ── Stat cards ─────────────────────────────────────────────────────────
   const statCards = stats ? [
@@ -64,7 +124,7 @@ export default function DoctorDashboardOverview() {
     },
     {
       title: "Pending Requests",
-      value: stats.pendingAppointments,
+      value: pendingRequests.length,
       icon:  AlertCircle,
       color: "from-rose-500 to-rose-600",
       sub:   "Awaiting your approval"
@@ -94,10 +154,6 @@ export default function DoctorDashboardOverview() {
       <div className="h-24 bg-slate-100 rounded-3xl" />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[1,2,3,4].map(i => <div key={i} className="h-32 bg-slate-100 rounded-3xl" />)}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="h-72 bg-slate-100 rounded-3xl" />
-        <div className="h-72 bg-slate-100 rounded-3xl" />
       </div>
     </div>
   );
@@ -141,6 +197,63 @@ export default function DoctorDashboardOverview() {
           );
         })}
       </div>
+
+      {/* PENDING REQUESTS SECTION */}
+      {pendingRequests.length > 0 && (
+        <div className="w-full bg-amber-50 border-2 border-amber-200 rounded-3xl shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-amber-200 bg-amber-50/50">
+            <div className="flex items-center gap-3 mb-2">
+              <AlertCircle className="text-amber-600" size={20} />
+              <h3 className="text-lg font-black text-amber-900">Appointment Requests</h3>
+            </div>
+            <p className="text-sm text-amber-700 ml-8">{pendingRequests.length} {pendingRequests.length === 1 ? 'request' : 'requests'} awaiting your approval</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-amber-100/40 text-[10px] font-black tracking-wider uppercase text-amber-900 border-b border-amber-200">
+                  <th className="p-4 pl-6">Patient</th>
+                  <th className="p-4">Date & Time</th>
+                  <th className="p-4">Symptoms</th>
+                  <th className="p-4 pr-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-amber-100 text-xs font-semibold text-slate-600">
+                {pendingRequests.map((req) => (
+                  <tr key={req._id?.toString()} className="hover:bg-amber-50/40 transition-colors">
+                    <td className="p-4 pl-6 font-black text-slate-800">
+                      {req.patientName}
+                    </td>
+                    <td className="p-4 text-slate-700">
+                      {req.appointmentDate} · {req.appointmentTime}
+                    </td>
+                    <td className="p-4 text-slate-500 max-w-[200px] truncate">
+                      {req.symptoms}
+                    </td>
+                    <td className="p-4 pr-6 text-right flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleAccept(req._id)}
+                        disabled={processingId === req._id}
+                        className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all">
+                        {processingId === req._id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleReject(req._id)}
+                        disabled={processingId === req._id}
+                        className="flex items-center gap-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all">
+                        {processingId === req._id ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                        Reject
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -202,7 +315,6 @@ export default function DoctorDashboardOverview() {
             })}
           </div>
 
-          {/* Today highlight */}
           <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock size={14} className="text-[#00A3E0]" />
@@ -217,8 +329,8 @@ export default function DoctorDashboardOverview() {
       <div className="w-full bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
           <div>
-            <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide">Recent Appointment Requests</h4>
-            <p className="text-[11px] text-slate-400 font-medium">Latest 5 appointments from your patients</p>
+            <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide">Recent Appointments</h4>
+            <p className="text-[11px] text-slate-400 font-medium">Latest confirmed and completed appointments</p>
           </div>
           <a href="/dashboard/doctor/appointments"
             className="text-xs font-bold text-[#00A3E0] hover:underline flex items-center gap-1">

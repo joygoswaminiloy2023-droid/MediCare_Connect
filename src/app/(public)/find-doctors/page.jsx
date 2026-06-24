@@ -10,6 +10,12 @@ import {
 } from "react-icons/fa";
 import Link from "next/link";
 
+// ── Currency Conversion ──────────────────────────────────────────────────
+const convertToBDT = (usdAmount) => {
+  const conversionRate = 110; // 1 USD = 110 BDT
+  return (usdAmount * conversionRate).toFixed(2);
+};
+
 const SPECIALIZATIONS = [
   "All Types", "Cardiology", "Neurology", "Orthopedic Surgery",
   "Gynecology & Obstetrics", "Pediatrics", "Dermatology",
@@ -75,32 +81,32 @@ function GridCard({ doc }) {
   const src = (!imgErr && (doc.image || doc.profileImage))
     || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=600";
 
+  // Get fee in USD (fallback to 50 if not provided)
+  const feeUSD = doc.consultationFee || doc.fee || 50;
+  const feeBDT = convertToBDT(feeUSD);
+
   return (
     <motion.div variants={cardVariants} layout
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
       className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden"
     >
       <Link href={`/appointments/book/${doc._id}`}>
-      <div className="relative h-52 bg-slate-100 overflow-hidden">
-        <motion.div className="w-full h-full" whileHover={{ scale: 1.04 }} transition={{ duration: 0.35 }}>
-          <Image src={src} alt={doc.doctorName || "Doctor"} width={400} height={300}
-            unoptimized onError={() => setImgErr(true)}
-            className="w-full h-full object-cover object-top" />
-        </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="absolute top-3 right-3 bg-emerald-500 text-white flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase shadow">
-          <FaCheckCircle className="text-[9px]" /> Verified
+        <div className="relative h-52 bg-slate-100 overflow-hidden">
+          <motion.div className="w-full h-full" whileHover={{ scale: 1.04 }} transition={{ duration: 0.35 }}>
+            <Image src={src} alt={doc.doctorName || "Doctor"} width={400} height={300}
+              unoptimized onError={() => setImgErr(true)}
+              className="w-full h-full object-cover object-top" />
+          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute top-3 right-3 bg-emerald-500 text-white flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase shadow">
+            <FaCheckCircle className="text-[9px]" /> Verified
+          </div>
+          <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md">
+            <FaStar className="text-amber-400 text-xs" />
+            <span className="text-slate-800">{doc.rating || "4.9"}</span>
+            <span className="text-slate-400 font-medium text-[11px]">({doc.reviews || "120"})</span>
+          </div>
         </div>
-        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md">
-          <FaStar className="text-amber-400 text-xs" />
-          <span className="text-slate-800">{doc.rating || "4.9"}</span>
-          <span className="text-slate-400 font-medium text-[11px]">({doc.reviews || "120"})</span>
-        </div>
-        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          
-          
-        </div>
-      </div>
       </Link>
       <div className="p-5 flex flex-col flex-grow">
         <h3 className="text-base font-bold text-slate-900 group-hover:text-[#00A3E0] transition-colors leading-snug">
@@ -115,17 +121,32 @@ function GridCard({ doc }) {
           <FaHospital className="text-slate-300 text-[10px] flex-shrink-0" />
           <p className="text-[11px] text-slate-400 truncate">{doc.hospitalName || "Clinic"}</p>
         </div>
+        
+        {/* Updated Fee Section with Both Currencies */}
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
           <div>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">Consultation</span>
-            <span className="text-lg font-extrabold text-slate-900">
-              {doc.consultationFee || "500"} <span className="text-sm font-semibold text-slate-400">BDT</span>
-            </span>
+            <div className="space-y-0.5">
+              <span className="text-lg font-extrabold text-slate-900">
+                ${feeUSD} <span className="text-sm font-semibold text-slate-400">USD</span>
+              </span>
+              <div className="text-sm font-bold text-slate-600">
+                ৳{feeBDT} <span className="text-xs font-semibold text-slate-400">BDT</span>
+              </div>
+            </div>
           </div>
           <Link href={`/appointments/book/${doc._id}`}
             className="bg-[#00A3E0] hover:bg-[#0082b3] active:scale-95 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5">
             Book Now <FaArrowRight className="text-[10px]" />
           </Link>
+        </div>
+        
+        {/* Exchange Rate Indicator */}
+        <div className="mt-2 pt-1.5 border-t border-slate-50/50">
+          <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
+            <span>💱</span>
+            <span>1 USD = ৳110 BDT</span>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -136,6 +157,10 @@ function ListCard({ doc }) {
   const [imgErr, setImgErr] = useState(false);
   const src = (!imgErr && (doc.image || doc.profileImage))
     || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=600";
+
+  // Get fee in USD (fallback to 50 if not provided)
+  const feeUSD = doc.consultationFee || doc.fee || 50;
+  const feeBDT = convertToBDT(feeUSD);
 
   return (
     <motion.div variants={cardVariants} layout
@@ -174,24 +199,37 @@ function ListCard({ doc }) {
           <div className="flex gap-1.5 mt-2 flex-wrap">
             {(Array.isArray(doc.availableSlots) ? doc.availableSlots : [doc.availableSlots])
               .slice(0, 3).map((slot, i) => (
-              <span key={i} className="bg-blue-50 text-[#00A3E0] text-[10px] font-bold px-2 py-0.5 rounded-md border border-blue-100">
-                {slot}
-              </span>
-            ))}
+                <span key={i} className="bg-blue-50 text-[#00A3E0] text-[10px] font-bold px-2 py-0.5 rounded-md border border-blue-100">
+                  {slot}
+                </span>
+              ))}
           </div>
         )}
+        
+        {/* Exchange Rate Indicator for List View */}
+        <div className="mt-2 flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
+          <span>💱</span>
+          <span>1 USD = ৳110 BDT</span>
+        </div>
       </div>
+      
+      {/* Updated Fee Section with Both Currencies */}
       <div className="flex-shrink-0 flex flex-col items-end gap-2">
         <div className="text-right">
           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">Fee</span>
-          <span className="text-base font-extrabold text-slate-900">
-            {doc.consultationFee || "500"} <span className="text-xs font-semibold text-slate-400">BDT</span>
-          </span>
+          <div className="space-y-0.5">
+            <div className="text-base font-extrabold text-slate-900">
+              ${feeUSD} <span className="text-xs font-semibold text-slate-400">USD</span>
+            </div>
+            <div className="text-sm font-bold text-slate-600">
+              ৳{feeBDT} <span className="text-xs font-semibold text-slate-400">BDT</span>
+            </div>
+          </div>
         </div>
-        <a href={`/appointments/book/${doc._id}`}
+        <Link href={`/appointments/book/${doc._id}`}
           className="bg-[#00A3E0] hover:bg-[#0082b3] text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 whitespace-nowrap">
           Book Now <FaArrowRight className="text-[10px]" />
-        </a>
+        </Link>
       </div>
     </motion.div>
   );
@@ -284,26 +322,29 @@ function FilterPanel({ activeSpec, setActiveSpec, minRating, setMinRating, maxFe
               transition={{ duration: 0.2 }} className="overflow-hidden">
               <div className="px-5 pb-5">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs text-slate-400 font-semibold">0 BDT</span>
+                  <span className="text-xs text-slate-400 font-semibold">$0 USD</span>
                   <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded-lg">
-                    Up to {maxFee} BDT
+                    Up to ${maxFee} USD
                   </span>
-                  <span className="text-xs text-slate-400 font-semibold">1000 BDT</span>
+                  <span className="text-xs text-slate-400 font-semibold">$1000 USD</span>
                 </div>
-                <input type="range" min={100} max={1000} step={50}
+                <input type="range" min={10} max={1000} step={10}
                   value={maxFee} onChange={e => setMaxFee(Number(e.target.value))}
                   className="w-full accent-[#00A3E0] cursor-pointer" />
                 <div className="flex gap-2 mt-3 flex-wrap">
-                  {[200, 400, 600, 1000].map(p => (
+                  {[50, 100, 200, 500, 1000].map(p => (
                     <button key={p} onClick={() => setMaxFee(p)}
                       className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all ${
                         maxFee === p
                           ? "bg-[#00A3E0] text-white border-[#00A3E0]"
                           : "border-slate-200 text-slate-500 hover:border-[#00A3E0] hover:text-[#00A3E0]"
                       }`}>
-                      ≤{p}
+                      ≤${p}
                     </button>
                   ))}
+                </div>
+                <div className="mt-3 text-[10px] text-slate-400 font-medium text-center">
+                  💱 1 USD = ৳110 BDT
                 </div>
               </div>
             </motion.div>
@@ -464,7 +505,7 @@ export default function FindDoctorsPage() {
               </div>
             </div>
 
-            {/* Active filter tags */}
+            {/* Active filter tags - Updated to show USD */}
             {hasActive && (
               <div className="flex gap-2 flex-wrap mb-4">
                 {activeSpec !== "All Types" && (
@@ -481,7 +522,7 @@ export default function FindDoctorsPage() {
                 )}
                 {maxFee < 1000 && (
                   <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">
-                    ≤ {maxFee} BDT
+                    ≤ ${maxFee} USD
                     <button onClick={() => setMaxFee(1000)}><FaTimes className="text-[9px]" /></button>
                   </span>
                 )}
