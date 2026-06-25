@@ -8,6 +8,9 @@ import {
   Stethoscope, Building2, Loader2
 } from "lucide-react";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000';
+
+
 export default function AdminDoctorsPage() {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,8 +22,7 @@ export default function AdminDoctorsPage() {
 
   const fetchDoctors = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/admin/doctors");
-      const data = await res.json();
+const res = await fetch(`${BACKEND_URL}/api/admin/doctors`);      const data = await res.json();
       if (Array.isArray(data)) {
         setDoctors(data);
       }
@@ -34,7 +36,7 @@ export default function AdminDoctorsPage() {
   const handleApprove = async (id) => {
     setActionLoading(id);
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/doctors/verify/${id}`, {
+      const res = await fetch(`${BACKEND_URL}/api/admin/doctors/verify/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ verified: true }),
@@ -63,7 +65,7 @@ export default function AdminDoctorsPage() {
   const handleRevoke = async (id) => {
     setActionLoading(id);
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/doctors/verify/${id}`, {
+      const res = await fetch(`${BACKEND_URL}/api/admin/doctors/verify/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ verified: false }),
@@ -93,7 +95,7 @@ export default function AdminDoctorsPage() {
     if (!confirm("Permanently reject this application? This cannot be undone.")) return;
     setActionLoading(id);
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/doctors/reject/${id}`, {
+      const res = await fetch(`${BACKEND_URL}/api/admin/doctors/reject/${id}`, {
         method: "DELETE",
       });
       const data = await res.json();

@@ -34,7 +34,7 @@ export default function SuccessStories() {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+        const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
         const res  = await fetch(`${BACKEND}/api/doctors/reviews/featured?limit=6&minRating=4`);
         const data = await res.json();
         if (data.success) {

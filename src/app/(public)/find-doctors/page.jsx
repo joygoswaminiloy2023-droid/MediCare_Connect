@@ -49,19 +49,15 @@ function buildQuery({ search, specialization, minRating, maxFee, page, limit }) 
   return params.toString();
 }
 
-// ── Shared rating badge helper ──────────────────────────────────────────
-// doc.rating is null when a doctor has zero reviews (see backend $lookup
-// against the "Reviews" collection). We must NOT use `doc.rating || "4.9"`
-// because that falls back even when rating is legitimately 0, and it also
-// fabricates a 4.9 score for brand-new doctors with no reviews at all.
+// ── ✅ FIXED: Rating badge helper using REAL data from backend ──────────
 function getRatingDisplay(doc) {
-  const hasRating = typeof doc.rating === "number" && doc.rating !== null;
+  // Use avgRating and reviewCount from backend
+  const hasRating = typeof doc.avgRating === "number" && doc.avgRating !== null && doc.avgRating > 0;
+  
   return {
     hasRating,
-    // Fall back to a fixed placeholder of 4.00 (with 0 reviews) when the
-    // doctor has no real reviews yet, instead of a "New" badge.
-    rating: hasRating ? doc.rating.toFixed(2) : "4.00",
-    reviewCount: hasRating ? (doc.reviews || 0) : 0,
+    rating: hasRating ? doc.avgRating.toFixed(1) : "New",
+    reviewCount: hasRating ? (doc.reviewCount || 0) : 0,
   };
 }
 
@@ -102,7 +98,9 @@ function GridCard({ doc, onBookClick }) {
 
   const feeUSD = doc.consultationFee || doc.fee || 50;
   const feeBDT = convertToBDT(feeUSD);
-  const { rating, reviewCount } = getRatingDisplay(doc);
+  
+  // ✅ Use REAL rating data
+  const { rating, reviewCount, hasRating } = getRatingDisplay(doc);
 
   return (
     <motion.div variants={cardVariants} layout
@@ -117,16 +115,24 @@ function GridCard({ doc, onBookClick }) {
               className="w-full h-full object-cover object-top" />
           </motion.div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <div className="absolute top-3 right-3 bg-emerald-500 text-white flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase shadow">
-            <FaCheckCircle className="text-[9px]" /> Verified
-          </div>
+          
+          {doc.verificationStatus === 'verified' && (
+            <div className="absolute top-3 right-3 bg-emerald-500 text-white flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase shadow">
+              <FaCheckCircle className="text-[9px]" /> Verified
+            </div>
+          )}
+          
+          {/* ✅ REAL Rating Badge - uses avgRating from backend */}
           <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md">
             <FaStar className="text-amber-400 text-xs" />
-            <span className="text-slate-800">{rating}</span>
-            <span className="text-slate-400 font-medium text-[11px]">({reviewCount})</span>
+            <span className="text-slate-800">{hasRating ? rating : "New"}</span>
+            <span className="text-slate-400 font-medium text-[11px]">
+              ({hasRating ? reviewCount : 0})
+            </span>
           </div>
         </div>
       </Link>
+      
       <div className="p-5 flex flex-col flex-grow">
         <h3 className="text-base font-bold text-slate-900 group-hover:text-[#00A3E0] transition-colors leading-snug">
           {doc.doctorName || "Specialist"}
@@ -180,7 +186,9 @@ function ListCard({ doc, onBookClick }) {
 
   const feeUSD = doc.consultationFee || doc.fee || 50;
   const feeBDT = convertToBDT(feeUSD);
-  const { rating, reviewCount } = getRatingDisplay(doc);
+  
+  // ✅ Use REAL rating data
+  const { rating, reviewCount, hasRating } = getRatingDisplay(doc);
 
   return (
     <motion.div variants={cardVariants} layout
@@ -191,10 +199,13 @@ function ListCard({ doc, onBookClick }) {
         <Image src={src} alt={doc.doctorName || "Doctor"} width={96} height={96}
           unoptimized onError={() => setImgErr(true)}
           className="w-full h-full object-cover object-top" />
-        <div className="absolute bottom-1 right-1 bg-emerald-500 rounded-full p-0.5">
-          <FaCheckCircle className="text-white text-[8px]" />
-        </div>
+        {doc.verificationStatus === 'verified' && (
+          <div className="absolute bottom-1 right-1 bg-emerald-500 rounded-full p-0.5">
+            <FaCheckCircle className="text-white text-[8px]" />
+          </div>
+        )}
       </div>
+      
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div>
@@ -203,18 +214,22 @@ function ListCard({ doc, onBookClick }) {
             </h3>
             <span className="text-[#00A3E0] text-xs font-semibold">{doc.specialization || "General"}</span>
           </div>
+          
+          {/* ✅ REAL Rating Badge - uses avgRating from backend */}
           <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg flex-shrink-0">
             <FaStar className="text-amber-400 text-[10px]" />
-            <span className="text-xs font-bold text-slate-700">{rating}</span>
-            <span className="text-[10px] text-slate-400">({reviewCount})</span>
+            <span className="text-xs font-bold text-slate-700">{hasRating ? rating : "New"}</span>
+            <span className="text-[10px] text-slate-400">({hasRating ? reviewCount : 0})</span>
           </div>
         </div>
+        
         <div className="flex items-center gap-3 mt-1.5 flex-wrap text-[11px] text-slate-400">
           <span className="flex items-center gap-1"><FaHospital className="text-[10px]" /> {doc.hospitalName || "Clinic"}</span>
           <span>•</span>
           <span>{doc.experience || "5"} yrs exp</span>
           {doc.degrees && <><span>•</span><span>{doc.degrees}</span></>}
         </div>
+        
         {doc.availableSlots?.length > 0 && (
           <div className="flex gap-1.5 mt-2 flex-wrap">
             {(Array.isArray(doc.availableSlots) ? doc.availableSlots : [doc.availableSlots])
@@ -225,6 +240,7 @@ function ListCard({ doc, onBookClick }) {
               ))}
           </div>
         )}
+        
         <div className="mt-2 flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
           <FaArrowRight className="text-[8px]" />
           <span>1 USD = ৳110 BDT</span>
@@ -425,7 +441,7 @@ export default function FindDoctorsPage() {
         limit: PER_PAGE
       });
 
-      const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+      const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
       const res  = await fetch(`${BACKEND}/api/doctors?${qs}`);
       const data = await res.json();
 
@@ -481,7 +497,7 @@ export default function FindDoctorsPage() {
 
     setIsChecking(true);
     try {
-      const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+      const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
       const res = await fetch(`${BACKEND}/api/appointments/check-restriction/${encodeURIComponent(userEmail)}`);
       const data = await res.json();
 

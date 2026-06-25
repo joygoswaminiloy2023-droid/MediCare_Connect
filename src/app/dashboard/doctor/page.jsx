@@ -8,7 +8,7 @@ import {
   Tooltip, CartesianGrid, BarChart, Bar, Cell
 } from 'recharts';
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 const STATUS_STYLES = {
   pending:   "bg-amber-50 text-amber-600 border border-amber-200",

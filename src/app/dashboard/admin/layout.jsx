@@ -64,9 +64,9 @@ export default function AdminDashboardLayout({ children }) {
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
+
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* TOP BAR */}
+       
         <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6">
           <button className="md:hidden" onClick={() => setIsSidebarOpen(true)}><Menu size={24} /></button>
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">

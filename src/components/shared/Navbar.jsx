@@ -116,12 +116,7 @@ export default function Navbar() {
                       }`}>
                       <FiLayout className="text-sm text-slate-400" /> Dashboard
                     </Link>
-                    <Link href="/dashboard/settings" onClick={() => setDropdownOpen(false)}
-                      className={`flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold transition-colors ${
-                        isActive("/dashboard/settings") ? "bg-[#00A3E0]/10 text-[#00A3E0]" : "hover:bg-slate-50"
-                      }`}>
-                      <FiSettings className="text-sm text-slate-400" /> Settings
-                    </Link>
+                  
                     <button onClick={handleLogout}
                       className="w-full border-t border-slate-100 mt-1 flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left">
                       <FiLogOut className="text-sm" /> Sign Out

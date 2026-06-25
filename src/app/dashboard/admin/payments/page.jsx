@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { DollarSign, User, Stethoscope, ShieldCheck, Loader2 } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000';
 
 export default function AdminPaymentsPage() {
   const [paymentsList, setPaymentsList] = useState([]);

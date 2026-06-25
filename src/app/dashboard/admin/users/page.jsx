@@ -7,7 +7,7 @@ import {
   ShieldCheck, Users, CalendarCheck, LogIn
 } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000';
 const RESTRICT_OPTIONS = [1, 3, 7, 14, 30];
 
 function formatDateTime(value) {

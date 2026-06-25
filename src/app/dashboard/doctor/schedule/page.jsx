@@ -4,7 +4,7 @@ import { Plus, Trash2, Clock, Loader2, AlertCircle, CheckCircle, Globe } from 'l
 import { authClient } from "@/lib/auth-client";
 import { toast } from 'react-toastify';
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const TIME_SLOTS = [

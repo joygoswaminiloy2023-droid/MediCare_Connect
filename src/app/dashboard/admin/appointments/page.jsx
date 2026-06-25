@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Stethoscope, Calendar, Clock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000';
 
 export default function AdminAppointmentsPage() {
   const [appointmentsList, setAppointmentsList] = useState([]);

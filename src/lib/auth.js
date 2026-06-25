@@ -21,12 +21,20 @@ async function findUserById(userId) {
   });
 }
 
+// ─── baseURL must match THIS app's own domain — it serves /api/auth/* itself ───
+const BASE_URL =
+  process.env.BETTER_AUTH_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://medicare-connect-three.vercel.app"
+    : "http://localhost:3000");
+
+console.log("BetterAuth BASE_URL:", BASE_URL);
+
 export const auth = betterAuth({
-  database: mongodbAdapter(db, {
-    client,
-  }),
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  database: mongodbAdapter(db, { client }),
+  baseURL: BASE_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+
   emailAndPassword: {
     enabled: true,
   },
@@ -34,71 +42,40 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      redirectURI: `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/api/auth/callback/google`,
+      redirectURI: `${BASE_URL}/api/auth/callback/google`,
     },
   },
   user: {
     additionalFields: {
-      role: {
-        type: "string",
-        default: "patient",
-        required: false,
-        input: true,
-      },
-      status: {
-        type: "string",
-        default: "active",
-        required: false,
-      },
+      role: { type: "string", default: "patient", required: false, input: true },
+      status: { type: "string", default: "active", required: false },
     },
   },
-  // ✅ ENSURE ROLE IS INCLUDED IN SESSION
   session: {
     customSessionValidationFn: async (session, raw) => {
       if (!session.userId) return null;
-
       const user = await findUserById(session.userId);
       if (!user) return null;
-
       return {
         ...session,
-        user: {
-          ...session.user,
-          role: user.role || "patient",
-          status: user.status || "active",
-        },
+        user: { ...session.user, role: user.role || "patient", status: user.status || "active" },
       };
     },
   },
-
   databaseHooks: {
     user: {
       create: {
-        before: async (user) => {
-          return {
-            data: {
-              ...user,
-              role: user.role || "patient",
-              status: "active",
-            },
-          };
-        },
+        before: async (user) => ({
+          data: { ...user, role: user.role || "patient", status: "active" },
+        }),
       },
       after: async (user) => {
         try {
           const oid = toObjectId(user.id);
-
           await db.collection("user").updateOne(
             { $or: [{ _id: user.id }, ...(oid ? [{ _id: oid }] : [])] },
-            {
-              $set: {
-                role: user.role || "patient",
-                status: "active",
-              },
-            }
+            { $set: { role: user.role || "patient", status: "active" } }
           );
-
-          console.log("User saved:", user.email, "Role:", user.role || "patient");
         } catch (err) {
           console.error("Error saving user:", err);
         }
@@ -106,29 +83,20 @@ export const auth = betterAuth({
       },
     },
   },
-
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
       const newSession = ctx.context.newSession;
       if (!newSession) return;
-
       const dbUser = await findUserById(newSession.user.id);
       if (dbUser?.status !== "banned") return;
-
-      // Kill the session we just created for the banned user
       await ctx.context.internalAdapter.deleteSession(newSession.session.token);
-
       const isOAuthCallback = ctx.path?.startsWith("/callback");
-
       if (isOAuthCallback) {
         const redirectURL = new URL("/Authentication_pages", ctx.context.baseURL);
         redirectURL.searchParams.set("error", "banned");
         throw ctx.redirect(redirectURL.toString());
       }
-
-      throw new APIError("FORBIDDEN", {
-        message: "Your account has been permanently banned.",
-      });
+      throw new APIError("FORBIDDEN", { message: "Your account has been permanently banned." });
     }),
   },
 });

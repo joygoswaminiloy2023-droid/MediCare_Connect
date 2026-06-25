@@ -30,7 +30,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (searchParams.get("error") === "banned") {
-      toast.error("❌ Your account has been permanently banned.");
+      toast.error("Your account has been permanently banned.");
     }
   }, [searchParams]);
 
@@ -40,7 +40,7 @@ export default function AuthPage() {
     reset({ name: "", email: "", password: "", image: "", role: "patient" });
   };
 
-  // REDIRECT BASED ON ROLE
+ 
   const redirectBasedOnRole = async (role) => {
     toast.success(isLogin ? "Welcome back!" : "Account created!");
     
@@ -58,11 +58,11 @@ export default function AuthPage() {
 
   const handleGoogleSignIn = async () => {
     try {
-      await authClient.signIn.social(
+      const { data, error } =await authClient.signIn.social(
         { provider: "google" },
         {
           onSuccess: (ctx) => {
-            // Get user role from session
+          
             const userRole = ctx?.data?.user?.role || "patient";
             redirectBasedOnRole(userRole);
           },
@@ -75,6 +75,7 @@ export default function AuthPage() {
           },
         }
       );
+      console.log(error, data);
     } catch (err) {
       console.error(err);
       toast.error("Google sign-in failed");
@@ -118,6 +119,7 @@ export default function AuthPage() {
 
         if (error) {
           toast.error(error.message || "Sign up failed");
+          console.log("Sign up error:", error);
           return;
         }
 
@@ -135,7 +137,7 @@ export default function AuthPage() {
 
       <div className="relative w-full max-w-[1000px] min-h-[720px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
 
-        {/* FORM CONTAINER */}
+     
         <div
           className={`w-full md:w-1/2 h-full flex flex-col justify-center px-8 sm:px-16 py-10 transition-all duration-700 ease-in-out z-10 ${
             isLogin ? "md:translate-x-0" : "md:translate-x-full"

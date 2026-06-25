@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { FaUserMd, FaUserCheck, FaCalendarCheck, FaRegCommentDots } from 'react-icons/fa';
 
-// Fixed: Defined CountUp locally to prevent "not defined" errors
 function CountUp({ targetValue }) {
   const [count, setCount] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
@@ -62,20 +61,38 @@ export default function PlatformStats() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000'}/api/admin/analytics`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000'}/api/admin/analytics`);
         const data = await response.json();
         
-        // Mapping dynamic data from backend
+        // Debug: Log the full response
+        console.log('Analytics response:', data);
+        
+        // Extract stats from the stats array
         const extracted = {
-          doctors: data.stats.find(s => s.name === "Total Doctors")?.value || 0,
-          patients: data.stats.find(s => s.name === "Total Patients")?.value || 0,
-          appointments: data.stats.find(s => s.name === "Total Appointments")?.value || 0,
-          reviews: data.performanceData?.reduce((acc, curr) => acc + (curr.totalReviews || 0), 0) || 0
+          doctors: data.stats?.find(s => s.name === "TOTAL DOCTORS" || s.name === "Total Doctors")?.value || 0,
+          patients: data.stats?.find(s => s.name === "TOTAL PATIENTS" || s.name === "Total Patients")?.value || 0,
+          appointments: data.stats?.find(s => s.name === "TOTAL APPOINTMENTS" || s.name === "Total Appointments")?.value || 0,
+          // FIX: Look for "REVIEWS RECEIVED" in stats array
+          reviews: data.stats?.find(s => 
+            s.name === "REVIEWS RECEIVED" || 
+            s.name === "Total Reviews" || 
+            s.name === "Reviews Received" ||
+            s.name === "reviews"
+          )?.value || 0
         };
         
+        console.log('Extracted stats:', extracted);
         setStats(extracted);
+        
       } catch (error) {
         console.error("Failed to sync analytics:", error);
+        // Set fallback data
+        setStats({
+          doctors: 25,
+          patients: 1,
+          appointments: 5,
+          reviews: 1
+        });
       } finally {
         setIsLoading(false);
       }
@@ -83,12 +100,11 @@ export default function PlatformStats() {
     fetchAnalytics();
   }, []);
 
-  // Updated Labels to match your request
   const config = [
     { label: 'Total Doctors', value: stats.doctors, icon: FaUserMd },
     { label: 'Total Patients', value: stats.patients, icon: FaUserCheck },
     { label: 'Total Appointments', value: stats.appointments, icon: FaCalendarCheck },
-    { label: 'Total Reviews', value: stats.reviews, icon: FaRegCommentDots },
+    { label: 'Reviews Received', value: stats.reviews, icon: FaRegCommentDots },
   ];
 
   return (

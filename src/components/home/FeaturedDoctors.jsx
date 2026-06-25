@@ -5,13 +5,13 @@ import { FaStar, FaCheckCircle, FaStethoscope, FaArrowRight, FaChevronLeft, FaCh
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
-// ── Currency Conversion ──────────────────────────────────────────────────
+const BACKEND_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000';
+
 const convertToBDT = (usdAmount) => {
-  const conversionRate = 110; // 1 USD = 110 BDT
+  const conversionRate = 110;
   return (usdAmount * conversionRate).toFixed(2);
 };
 
-// ── Animation Variants ────────────────────────────────────────────────────────
 const sectionVariants = {
   hidden: { opacity: 0, y: 40 },
   visible: {
@@ -42,7 +42,6 @@ const cardVariants = {
   }
 };
 
-// ── Skeleton Loader ───────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
@@ -60,15 +59,20 @@ function SkeletonCard() {
   );
 }
 
-// ── Doctor Card ───────────────────────────────────────────────────────────────
+// ── Doctor Card with REAL ratings ──────────────────────────────────────
 function DoctorCard({ doc }) {
   const [imgError, setImgError] = useState(false);
   const doctorImg = (!imgError && (doc.image || doc.profileImage))
     || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=600";
 
-  // Get fee in USD (fallback to 50 if not provided)
   const feeUSD = doc.consultationFee || doc.fee || 50;
   const feeBDT = convertToBDT(feeUSD);
+
+  // ✅ USE REAL DATA from database (avgRating and reviewCount from backend)
+  const rating = doc.avgRating || 0;
+  const reviewCount = doc.reviewCount || 0;
+  const displayRating = rating > 0 ? rating.toFixed(1) : "New";
+  const hasRating = rating > 0;
 
   return (
     <motion.div
@@ -76,7 +80,6 @@ function DoctorCard({ doc }) {
       whileHover={{ y: -6, transition: { duration: 0.25, ease: 'easeOut' } }}
       className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden cursor-pointer"
     >
-      {/* Image Layer */}
       <Link href={`/appointments/book/${doc._id || doc.id}`}>
         <div className="relative h-64 w-full bg-slate-100 overflow-hidden">
           <motion.div
@@ -95,12 +98,10 @@ function DoctorCard({ doc }) {
             />
           </motion.div>
 
-          {/* Dark gradient overlay on hover */}
           <motion.div
             className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           />
 
-          {/* Verified Badge */}
           {doc.verificationStatus === 'verified' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -112,16 +113,17 @@ function DoctorCard({ doc }) {
             </motion.div>
           )}
 
-          {/* Rating Badge */}
+          {/* ✅ REAL Rating Badge */}
           <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm text-slate-800 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md">
             <FaStar className="text-amber-400 text-xs" />
-            <span>{doc.rating || "4.9"}</span>
-            <span className="text-slate-400 font-medium text-[11px]">({doc.reviews || "120"})</span>
+            <span>{hasRating ? rating.toFixed(1) : "New"}</span>
+            <span className="text-slate-400 font-medium text-[11px]">
+              ({hasRating ? reviewCount : "0"})
+            </span>
           </div>
         </div>
       </Link>
 
-      {/* Content Layer */}
       <div className="p-5 flex flex-col justify-between flex-grow">
         <div>
           <h3 className="text-base font-bold text-slate-900 tracking-tight leading-snug group-hover:text-[#00A3E0] transition-colors duration-200">
@@ -146,7 +148,6 @@ function DoctorCard({ doc }) {
           </div>
         </div>
 
-        {/* Bottom Action Bar - Updated with Both Currencies */}
         <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-50">
           <div>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block leading-none mb-1">
@@ -170,7 +171,6 @@ function DoctorCard({ doc }) {
           </Link>
         </div>
 
-        {/* Exchange Rate Indicator */}
         <div className="mt-2 pt-2 border-t border-slate-50/50">
           <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
             <span>💱</span>
@@ -192,12 +192,11 @@ export default function FeaturedDoctors() {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        // ✅ FIXED: only fetches verified doctors from the live Doctor collection
-        const res = await fetch("http://localhost:5000/api/doctors");
+        // ✅ Fetch with real ratings from backend
+        const res = await fetch(`${BACKEND_URL}/api/doctors?limit=12`);
         if (!res.ok) throw new Error("Failed to fetch doctors.");
         const data = await res.json();
 
-        // ✅ FIXED: reads data.doctors (not raw array) since endpoint returns { success, doctors }
         if (data.success && Array.isArray(data.doctors)) {
           setDoctors(data.doctors);
         }
@@ -320,7 +319,6 @@ export default function FeaturedDoctors() {
                 transition={{ delay: 0.4 }}
                 className="flex items-center justify-center gap-2 mt-14 pt-8 border-t border-slate-100"
               >
-                {/* Prev */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -335,7 +333,6 @@ export default function FeaturedDoctors() {
                   <FaChevronLeft className="text-[10px]" /> Prev
                 </motion.button>
 
-                {/* Page Numbers */}
                 {getPaginationNumbers().map((page, i) => (
                   <motion.button
                     key={i}
@@ -354,7 +351,6 @@ export default function FeaturedDoctors() {
                   </motion.button>
                 ))}
 
-                {/* Next */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

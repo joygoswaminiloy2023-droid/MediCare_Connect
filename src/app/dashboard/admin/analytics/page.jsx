@@ -10,7 +10,7 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000';
 
 const CHART_COLORS = ['#00A3E0', '#34d399', '#f59e0b', '#818cf8', '#a855f7'];
 

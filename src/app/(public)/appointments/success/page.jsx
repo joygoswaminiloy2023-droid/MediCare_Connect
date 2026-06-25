@@ -9,7 +9,7 @@ import {
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 export default function AppointmentSuccessPage() {
   const [appointment, setAppointment] = useState(null);
@@ -294,7 +294,7 @@ export default function AppointmentSuccessPage() {
             className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs py-4 rounded-xl transition-all duration-300 hover:shadow-md">
             <FaHome className="text-[12px]" /> Go Home
           </Link>
-          <Link href="/dashboard/patient"
+          <Link href="/dashboard/patient/my-appointments"
             className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#00A3E0] to-[#0082b3] hover:from-[#0082b3] hover:to-[#005d8a] text-white font-black text-xs py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl">
             <FaCalendarAlt className="text-[12px]" /> View My Appointments
           </Link>

@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 const STATUS_CONFIG = {
   pending:   { label: "Awaiting Doctor",  bg: "bg-amber-50",   text: "text-amber-700",  border: "border-amber-200",  icon: Clock3 },

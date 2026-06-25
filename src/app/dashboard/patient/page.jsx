@@ -4,7 +4,7 @@ import { Calendar, DollarSign, Heart, Stethoscope, ArrowRight, AlertCircle, Star
 import { authClient } from "@/lib/auth-client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from 'recharts';
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 export default function PatientDashboardOverview() {
   const [upcomingAppointments, setUpcoming] = useState([]);

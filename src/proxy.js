@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "./lib/auth"; 
 import { headers } from "next/headers";
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
@@ -69,10 +69,11 @@ export async function proxy(request) {
   return NextResponse.next();
 }
 
-export const config = {
-  runtime: "nodejs",
-  matcher: [
-    "/dashboard/:path*",
-    "/appointments/:path*",
-  ],
-};
+// ─── REMOVE THIS ENTIRE CONFIG ──────────────────────────────────────
+// export const config = {
+//   runtime: "nodejs",
+//   matcher: [
+//     "/dashboard/:path*",
+//     "/appointments/:path*",
+//   ],
+// };

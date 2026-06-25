@@ -11,7 +11,7 @@ import {
 import { Loader2, Clock, AlertCircle, CheckCircle2, Ban } from "lucide-react";
 import { toast } from "react-toastify";
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 export default function BookingPage({ params }) {
   const { id } = use(params);
@@ -52,10 +52,10 @@ export default function BookingPage({ params }) {
         if (data.success) {
           if (data.status === "confirmed") {
             setDoctorAccepted(true);
-            toast.success(" Doctor accepted your request! Ready to pay.", { position: "top-center" });
+            toast.success("✅ Doctor accepted your request! Ready to pay.", { position: "top-center" });
             clearInterval(pollInterval);
           } else if (data.status === "rejected") {
-            toast.error(` Doctor rejected: ${data.appointment.rejectionReason}`, { position: "top-center" });
+            toast.error(`❌ Doctor rejected: ${data.appointment?.rejectionReason || "No reason provided"}`, { position: "top-center" });
             setAppointmentRequested(false);
             clearInterval(pollInterval);
           }
@@ -110,14 +110,12 @@ export default function BookingPage({ params }) {
       const data = await res.json();
 
       if (data.success) {
-        // Handle different statuses
         if (data.status === "banned") {
           setIsRestricted(true);
           setRestrictionReason(data.reason || "Banned");
           setRestrictionMessage(data.message || "Your account has been permanently banned.");
           
-          // SHOW TOAST FOR BANNED
-          toast.error(`${data.message || "Your account has been permanently banned. Please contact support."}`, {
+          toast.error(`🚫 ${data.message || "Your account has been permanently banned. Please contact support."}`, {
             position: "top-center",
             autoClose: false,
             closeOnClick: true,
@@ -130,14 +128,13 @@ export default function BookingPage({ params }) {
           setRestrictionReason(data.reason || "Restricted");
           setRestrictionMessage(data.message || "Your account has been restricted.");
           
-          // SHOW TOAST FOR RESTRICTED
           const untilDate = data.until ? new Date(data.until).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           }) : "unknown date";
           
-          toast.warning(` ${data.message || `Your account is restricted until ${untilDate}. You cannot book appointments.`}`, {
+          toast.warning(`⚠️ ${data.message || `Your account is restricted until ${untilDate}. You cannot book appointments.`}`, {
             position: "top-center",
             autoClose: false,
             closeOnClick: true,
@@ -158,6 +155,9 @@ export default function BookingPage({ params }) {
 
   const today = new Date().toISOString().split("T")[0];
 
+  // =========================================================================
+  // FIXED: REQUEST APPOINTMENT - Creates ONE appointment
+  // =========================================================================
   const handleRequestAppointment = async (e) => {
     e.preventDefault();
     if (!form.timeSlot) {
@@ -185,7 +185,7 @@ export default function BookingPage({ params }) {
       const data = await res.json();
       
       if (data.success) {
-        toast.success("Request sent! Waiting for doctor approval...", { position: "top-center" });
+        toast.success("📨 Request sent! Waiting for doctor approval...", { position: "top-center" });
         setAppointmentRequested(true);
         setPendingAppointmentId(data.appointmentId);
       } else {
@@ -219,6 +219,16 @@ export default function BookingPage({ params }) {
           setIsRestricted(true);
           setRestrictionMessage(data.message || message);
           
+        } else if (data.status === 409) {
+          // Duplicate appointment
+          toast.warning("⚠️ You already have a pending appointment with this doctor at this time.", { 
+            position: "top-center" 
+          });
+          // If there's an existing appointment ID, use it
+          if (data.appointmentId) {
+            setPendingAppointmentId(data.appointmentId);
+            setAppointmentRequested(true);
+          }
         } else {
           toast.error(data.message || "Failed to request appointment.", { position: "top-center" });
         }
@@ -231,15 +241,29 @@ export default function BookingPage({ params }) {
     }
   };
 
+  // =========================================================================
+  // FIXED: Payment Handler - Uses existing appointment ID
+  // =========================================================================
   const handlePayment = async (e) => {
     e.preventDefault();
+    
+    // ✅ Check if we have a pending appointment ID
+    if (!pendingAppointmentId) {
+      toast.error("No appointment found. Please request an appointment first.", { 
+        position: "top-center" 
+      });
+      return;
+    }
+
     setPaying(true);
 
     try {
+      // ✅ USE THE EXISTING APPOINTMENT ID
       const res = await fetch(`${BACKEND}/api/appointments/create-checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          appointmentId: pendingAppointmentId, // ✅ Pass existing appointment ID
           doctorId: id,
           doctorName: doctor.doctorName,
           patientId,
@@ -253,14 +277,19 @@ export default function BookingPage({ params }) {
       });
 
       const data = await res.json();
+      
       if (data.success && data.url) {
         window.location.href = data.url;
       } else {
-        toast.error(data.message || "Failed to create payment.", { position: "top-center" });
+        toast.error(data.message || "Failed to create payment.", { 
+          position: "top-center" 
+        });
       }
     } catch (err) {
       console.error(err);
-      toast.error("Network error. Please try again.", { position: "top-center" });
+      toast.error("Network error. Please try again.", { 
+        position: "top-center" 
+      });
     } finally {
       setPaying(false);
     }
@@ -563,7 +592,7 @@ export default function BookingPage({ params }) {
                     <Clock className="text-amber-600 relative animate-spin" size={24} />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-amber-900">Doctor Review in Progress</p>
+                    <p className="text-sm font-black text-amber-900">⏳ Doctor Review in Progress</p>
                     <p className="text-xs text-amber-700 mt-0.5">Waiting for doctor approval...</p>
                   </div>
                 </div>

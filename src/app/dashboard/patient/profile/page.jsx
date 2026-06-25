@@ -4,7 +4,7 @@ import { User, Mail, Phone, MapPin, Calendar, Save, Loader2 } from 'lucide-react
 import { authClient } from "@/lib/auth-client";
 import { toast } from 'react-toastify';
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 export default function PatientProfileSettings() {
   const [loading, setLoading] = useState(false);

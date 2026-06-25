@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, ClipboardCheck, Calendar, Clock, User, Stethoscope, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-const BACKEND = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+const BACKEND = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000";
 
 const STATUS_STYLES = {
   pending:   "bg-amber-100 text-amber-700 border border-amber-200",

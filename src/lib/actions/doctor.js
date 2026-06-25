@@ -1,10 +1,11 @@
 "use server";
 
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000';
 
 export async function create_doc(payload) {
   try {
-    const response = await fetch("http://localhost:5000/api/doctors/profile", {
+    const response = await fetch(`${BACKEND_URL}/api/doctors/profile`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
