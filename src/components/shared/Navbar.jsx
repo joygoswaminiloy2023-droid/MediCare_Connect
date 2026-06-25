@@ -214,23 +214,8 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* ✅ Settings link for mobile */}
-            {!isPending && user && (
-              <Link href="/dashboard/settings" onClick={() => setIsOpen(false)}
-                className={`px-6 py-4 flex items-center justify-between transition-colors ${
-                  isActive("/dashboard/settings")
-                    ? "bg-[#00A3E0] text-white"
-                    : "hover:bg-slate-900 text-slate-200"
-                }`}>
-                <span className="flex items-center gap-3">
-                  <FiSettings className="text-base" />
-                  SETTINGS
-                </span>
-                {isActive("/dashboard/settings") && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
-                )}
-              </Link>
-            )}
+         
+           
           </nav>
 
           {/* Mobile action buttons */}

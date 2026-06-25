@@ -4,13 +4,13 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**', // Allows any domain name secure connection (e.g., unsplash, imgur, pinimg, etc.)
+        hostname: '**', 
         port: '',
-        pathname: '/**', // Allows any sub-directory folder path structure
+        pathname: '/**', 
       },
       {
         protocol: 'http',
-        hostname: '**', // Also allows unsecured legacy URLs if any exist in your database records
+        hostname: '**', 
         port: '',
         pathname: '/**',
       },
