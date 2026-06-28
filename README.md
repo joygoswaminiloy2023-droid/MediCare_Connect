@@ -16,19 +16,27 @@ Connecting patients, doctors, and administrators in one centralized digital heal
 
 ## 📸 Preview
 
+## 📸 Preview
+
 <div align="center">
 
-| Patient Dashboard | Admin Dashboard |
-|---|---|
-| ![Patient Dashboard](./UI/Paitent_Dashboard.png) | ![Admin Dashboard](./UI/Admin_Dashboard.png) |
+### Patient Dashboard
+![Patient Dashboard](./UI/Paitent_Dashboard.png)
 
-| Doctor Dashboard | Find a Doctor |
-|---|---|
-| ![Doctor Dashboard](./UI/Doctor_dashboard.png) | ![Find Doctor](./UI/Find_Doctor.png) |
+### Admin Dashboard
+![Admin Dashboard](./UI/Admin_Dashboard.png)
 
-| Doctor Details | Home Page |
-|---|---|
-| ![Doctor Details](./UI/Doc_details.png) | ![Home Page](./UI/Home.png) |
+### Doctor Dashboard
+![Doctor Dashboard](./UI/Doctor_dashboard.png)
+
+### Find a Doctor
+![Find Doctor](./UI/Find_Doctor.png)
+
+### Doctor Details
+![Doctor Details](./UI/Doc_details.png)
+
+### Home Page
+![Home Page](./UI/Home.png)
 
 </div>
 
