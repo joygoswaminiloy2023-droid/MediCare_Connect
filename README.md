@@ -14,30 +14,44 @@ Connecting patients, doctors, and administrators in one centralized digital heal
 
 ---
 
-## 📸 Preview
 
 ## 📸 Preview
 
 <div align="center">
 
-### Patient Dashboard
-![Patient Dashboard](./UI/Paitent_Dashboard.png)
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
 
-### Admin Dashboard
-![Admin Dashboard](./UI/Admin_Dashboard.png)
+<div style="flex: 1; min-width: 300px; max-width: 450px;">
+    <p><b>Patient Dashboard</b></p>
+    <img src="./UI/Paitent_Dashboard.png" alt="Patient Dashboard" style="border-radius: 12px; border: 1px solid #333;">
+</div>
 
-### Doctor Dashboard
-![Doctor Dashboard](./UI/Doctor_dashboard.png)
+<div style="flex: 1; min-width: 300px; max-width: 450px;">
+    <p><b>Admin Dashboard</b></p>
+    <img src="./UI/Admin_Dashboard.png" alt="Admin Dashboard" style="border-radius: 12px; border: 1px solid #333;">
+</div>
 
-### Find a Doctor
-![Find Doctor](./UI/Find_Doctor.png)
+<div style="flex: 1; min-width: 300px; max-width: 450px;">
+    <p><b>Doctor Dashboard</b></p>
+    <img src="./UI/Doctor_dashboard.png" alt="Doctor Dashboard" style="border-radius: 12px; border: 1px solid #333;">
+</div>
 
-### Doctor Details
-![Doctor Details](./UI/Doc_details.png)
+<div style="flex: 1; min-width: 300px; max-width: 450px;">
+    <p><b>Find a Doctor</b></p>
+    <img src="./UI/Find_Doctor.png" alt="Find Doctor" style="border-radius: 12px; border: 1px solid #333;">
+</div>
 
-### Home Page
-![Home Page](./UI/Home.png)
+<div style="flex: 1; min-width: 300px; max-width: 450px;">
+    <p><b>Doctor Details</b></p>
+    <img src="./UI/Doc_details.png" alt="Doctor Details" style="border-radius: 12px; border: 1px solid #333;">
+</div>
 
+<div style="flex: 1; min-width: 300px; max-width: 450px;">
+    <p><b>Home Page</b></p>
+    <img src="./UI/Home.png" alt="Home Page" style="border-radius: 12px; border: 1px solid #333;">
+</div>
+
+</div>
 </div>
 
 ---
