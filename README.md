@@ -20,15 +20,15 @@ Connecting patients, doctors, and administrators in one centralized digital heal
 
 | Patient Dashboard | Admin Dashboard |
 |---|---|
-| ![Patient Dashboard](./screenshots/Patient_Dashboard.png) | ![Admin Dashboard](./screenshots/Admin_Dashboard.png) |
+| ![Patient Dashboard](./UI/Paitent_Dashboard.png) | ![Admin Dashboard](./UI/Admin_Dashboard.png) |
 
 | Doctor Dashboard | Find a Doctor |
 |---|---|
-| ![Doctor Dashboard](./screenshots/Doctor_dashboard.png) | ![Find Doctor](./screenshots/Find_Doctor.png) |
+| ![Doctor Dashboard](./UI/Doctor_dashboard.png) | ![Find Doctor](./UI/Find_Doctor.png) |
 
 | Doctor Details | Home Page |
 |---|---|
-| ![Doctor Details](./screenshots/Doc_details.png) | ![Home Page](./screenshots/Home.png) |
+| ![Doctor Details](./UI/Doc_details.png) | ![Home Page](./UI/Home.png) |
 
 </div>
 
@@ -150,6 +150,51 @@ Traditional healthcare systems often involve long waiting times, manual paperwor
 
 ---
 
+## 🚧 Challenges Faced During Development
+
+- Designing a scalable database structure for multiple user roles (Patient, Doctor, Admin).
+- Implementing secure JWT authentication with role-based authorization.
+- Managing protected routes that remain accessible after page refresh.
+- Synchronizing doctor schedules to prevent appointment conflicts.
+- Integrating Stripe payment gateway with appointment confirmation flow.
+- Building dynamic dashboards with different permissions for each role.
+- Maintaining responsive layouts across mobile, tablet, and desktop devices.
+- Creating reusable UI components while keeping the design consistent.
+- Handling asynchronous API requests with proper loading and error states.
+- Implementing CRUD operations securely for appointments, reviews, prescriptions, and schedules.
+- Optimizing MongoDB queries for dashboard statistics and analytics.
+- Ensuring secure backend APIs with middleware validation.
+- Managing state efficiently across authentication and dashboard modules.
+- Creating dynamic charts and reports using Recharts.
+- Maintaining clean project architecture for future scalability.
+
+---
+
+## 🚀 Future Implementations
+
+- Real-time doctor-patient chat using Socket.io.
+- Video consultation and telemedicine support.
+- AI-powered symptom checker and doctor recommendations.
+- SMS and email appointment reminders.
+- Push notifications for appointment updates.
+- Electronic Health Record (EHR) management.
+- Medical report and prescription PDF download.
+- Multi-language support.
+- Voice search for doctors and hospitals.
+- Online pharmacy integration.
+- Ambulance booking service.
+- Health insurance claim management.
+- Doctor availability calendar with drag-and-drop scheduling.
+- QR code-based patient check-in system.
+- Hospital-wise doctor filtering.
+- Advanced analytics using AI for hospital administrators.
+- Mobile application for Android and iOS.
+- Patient health history timeline.
+- Emergency appointment prioritization.
+- Integration with wearable health devices for health monitoring.
+
+---
+
 ## 📱 Responsive Design
 
 Fully optimized for:
@@ -165,25 +210,10 @@ Fully optimized for:
 Clone the client repository and run it locally:
 
 ```bash
-git clone https://github.com/joygoswaminiloy2023-droid/MediCare_Connect.git
+git clone [https://github.com/joygoswaminiloy2023-droid/MediCare_Connect.git](https://github.com/joygoswaminiloy2023-droid/MediCare_Connect.git)
 
 cd MediCare_Connect
 
 npm install
 
 npm run dev
-```
-
-> 💡 Don't forget to also clone and run the [server repository](https://github.com/joygoswaminiloy2023-droid/MediCare_Connect_server) and configure your environment variables (Firebase, MongoDB, Stripe keys, JWT secret) for the app to function fully.
-
----
-
-## 👨‍💻 Developed By
-
-<div align="center">
-
-**Joy Goswami Niloy**
-
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/joygoswaminiloy2023-droid)
-
-</div>
